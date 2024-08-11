@@ -19,7 +19,7 @@
     ## To Check Version
     tsc -v
 
-## For A New Project
+## New Project Creation
 
 #### 1. Install Vite, Create Project, Package, etc: ####
     npm create vite@latest
@@ -44,6 +44,8 @@ Prompts will pop up and ask for your input:
 If you are starting from the three_js_boilerplate this step can be skipped.
 
 npm installs the code for each dependency in a new node_modules/ folder. When Vite builds your application, it sees imports for 'three' and pulls three.js files automatically from this folder. The node_modules/ folder is used only during development, and shouldn't be uploaded to your web hosting provider or committed to version history.
+
+
 
 #### 3.  In terminal, in your root directory, run:
     npx vite --host
