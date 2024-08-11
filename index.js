@@ -11,7 +11,7 @@ import { SAOPass } from 'three/addons/postprocessing/SAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 let camera, scene, renderer ;
-var geometry, material, mesh;
+var geometry, material, mesh, all_models;
 
 //ssao
 let composer, renderPass, saoPass,container, stats;
@@ -22,8 +22,8 @@ animate();
 function init() {
 
     // Camera
-    camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 0.001, 1000 );
-    camera.position.set(0, 0, 1);
+    camera = new THREE.PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 0.001, 1000 );
+    camera.position.set(.3, .3, -.3);
 
     // Renderer
     renderer = new THREE.WebGLRenderer({antialias : true});
@@ -31,6 +31,8 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setClearColor(.2,.2,.2);
+
     document.body.appendChild(renderer.domElement);
 
     // Scene
@@ -44,7 +46,7 @@ function init() {
     dir_light.position.set( 1, 1, 1);
     dir_light.castShadow = true;
     dir_light.shadow.mapSize.set(2048,2048);
-    dir_light.shadow.intensity = 2;
+    dir_light.shadow.intensity = 1;
     scene.add(dir_light);
     
     ///// Debug Geom /////
@@ -57,28 +59,31 @@ function init() {
 
     new RGBELoader()
         .setPath( 'tex/equirectangular/' )
-        .load( 'japanese_garden.hdr', function ( texture ) {
+        .load( 'studio_small.hdr', function ( texture ) {
 
             texture.mapping = THREE.EquirectangularReflectionMapping;
 
         // GLTF Loader
         new GLTFLoader()
             .setPath( 'models/gltf/' )
-            .load( 'oni.glb', function ( gltf ) {
+            .load( 'iphone.glb', function ( gltf ) {
                 gltf.scene.traverse( function ( child ) {
                     if ( child.isMesh){
                         child.castShadow = true;
                         child.receiveShadow = true;
                         child.material.side = THREE.FrontSide;
                     }
+                    all_models = gltf.scene
+
                     scene.add( gltf.scene );
-                })
+
+                });
+
             } );
-            scene.background = texture;
+            // scene.background = texture;
             scene.environment = texture;
             scene.environmentIntensity = 1;
             scene.backgroundBlurriness = .5;
-
             render();
 
 
@@ -98,8 +103,8 @@ function init() {
     const outputPass = new OutputPass();
     composer.addPass( outputPass );
 
-    saoPass.params.saoIntensity = .05;
-    saoPass.params.saoScale = 40;
+    saoPass.params.saoIntensity = .15;
+    saoPass.params.saoScale = 70;
     saoPass.params.saoKernelRadius = 100;
     saoPass.params.saoBlurRadius = 5;
     saoPass.enabled = true;
@@ -120,7 +125,13 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 function animate() {
 
     requestAnimationFrame( animate );
+
+    // rotational debug:
+    // all_models.rotation.y += 0.004;
+    // });
     renderer.render( scene, camera );
+
+
     render();
 
 }
@@ -128,4 +139,4 @@ function render() {
 
     composer.render();
 
-}
+    }

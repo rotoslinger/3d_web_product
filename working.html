@@ -31,7 +31,7 @@
 			import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 			let camera, scene, renderer ;
-			var geometry, material, mesh;
+			var geometry, material, mesh, all_models;
 
 			//ssao
 			let composer, renderPass, saoPass,container, stats;
@@ -42,8 +42,8 @@
 			function init() {
 
 				// Camera
-				camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 0.001, 1000 );
-				camera.position.set(0, 0, 1);
+				camera = new THREE.PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 0.001, 1000 );
+				camera.position.set(.3, .3, -.3);
 
 				// Renderer
 				renderer = new THREE.WebGLRenderer({antialias : true});
@@ -51,6 +51,8 @@
 				renderer.setSize(window.innerWidth, window.innerHeight);
 				renderer.shadowMap.enabled = true;
 				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				renderer.setClearColor(.2,.2,.2);
+
 				document.body.appendChild(renderer.domElement);
 
 				// Scene
@@ -77,7 +79,7 @@
 
 				new RGBELoader()
 					.setPath( 'tex/equirectangular/' )
-					.load( 'indoor.hdr', function ( texture ) {
+					.load( 'studio_small.hdr', function ( texture ) {
 
 						texture.mapping = THREE.EquirectangularReflectionMapping;
 
@@ -91,10 +93,14 @@
 									child.receiveShadow = true;
 									child.material.side = THREE.FrontSide;
 								}
+								all_models = gltf.scene
+
 								scene.add( gltf.scene );
-							})
+
+							});
+
 						} );
-						scene.background = texture;
+						// scene.background = texture;
 						scene.environment = texture;
 						scene.environmentIntensity = 1;
 						scene.backgroundBlurriness = .5;
@@ -117,8 +123,8 @@
 				const outputPass = new OutputPass();
 				composer.addPass( outputPass );
 
-				saoPass.params.saoIntensity = .05;
-				saoPass.params.saoScale = 40;
+				saoPass.params.saoIntensity = .15;
+				saoPass.params.saoScale = 70;
 				saoPass.params.saoKernelRadius = 100;
 				saoPass.params.saoBlurRadius = 5;
 				saoPass.enabled = true;
@@ -139,7 +145,13 @@
 			function animate() {
 
 				requestAnimationFrame( animate );
+
+				// rotational debug:
+				// all_models.rotation.y += 0.004;
+				// });
 				renderer.render( scene, camera );
+
+
 				render();
 
 			}
