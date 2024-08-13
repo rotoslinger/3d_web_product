@@ -58,7 +58,7 @@ function init() {
 
 
     new RGBELoader()
-        .setPath( 'tex/equirectangular/' )
+        .setPath( 'textureequirectangular/' )
         .load( 'studio_small.hdr', function ( texture ) {
 
             texture.mapping = THREE.EquirectangularReflectionMapping;

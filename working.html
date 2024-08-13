@@ -29,118 +29,348 @@
 			import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 			import { SAOPass } from 'three/addons/postprocessing/SAOPass.js';
 			import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+			
+			// Gui
+			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
-			let camera, scene, renderer ;
-			var geometry, material, mesh, all_models;
+			// File system reading writing, etc
+			import * as fs from 'fs';
+			import {saveAs} from 'file-saver';
+
+			var camera, scene, renderer ;
+			var geometry, material, mesh, all_models, gltf_meshes;
 
 			//ssao
-			let composer, renderPass, saoPass,container, stats;
+			let composer, renderPass, saoPass,container, stats, hemi_light, dir_light;
+			let screen_mat, back_mat, antenna_mat, glass_mat, lens_mat, shiny_black_mat, tex_metal_mat, flash_cover_mat, dir_tex_metal_mat, metal_mat, grey_matte_mat;
+			let all_meshes = [];
+			let all_mats = [];
+			let all_mat_names = [
+									"screen_mat",
+									"back_mat", 
+									"antenna_mat",
+									"glass_mat",
+									"lens_mat",
+									"shiny_black_mat",
+									"tex_metal_mat",
+									"flash_cover_mat",
+									"dir_tex_metal_mat",
+									"metal_mat",
+									"grey_matte_mat"
+								];
+
+			let phone_color_mat_names = [
+									"back", 
+
+									"antenna",
+									"dir_tex_metal",
+									"tex_metal",
+
+								  ];
+			let phone_color_mats = [];
+
+			let dir_metal_mat_names = [
+										"tex_metal",
+										"dir_tex_metal",
+									  ];
+			let dir_metal_mats = [];
+
+			const dummy_mat = new THREE.MeshPhysicalMaterial();
+
+			// eval('var test_attr;');
+			let screen_tab,
+				antenna_tab,
+				glass_tab,
+				lens_tab,
+				shiny_black_tab,
+				tex_metal_tab,
+				flash_cover_tab,
+				dir_tex_metal_tab,
+				metal_tab,
+				grey_matte_tab
+
+			let mesh_names =[
+							"screen",
+							"antenna",
+							"glass",
+							"lens",
+							"shiny_black",
+							"tex_metal",
+							"flash_cover",
+							"dir_tex_metal",
+							"metal",
+							"grey_matte"
+							]
+
+
+
+			let material_map = {
+				current_mesh : "screen",
+				mesh_mat_dict : {
+								"screen" : dummy_mat,
+								"antenna" : dummy_mat,
+								"glass" : dummy_mat,
+								"lens" : dummy_mat,
+								"shiny_black" : dummy_mat,
+								"tex_metal" : dummy_mat,
+								"flash_cover" : dummy_mat,
+								"dir_tex_metal" : dummy_mat,
+								"metal" : dummy_mat,
+								"grey_matte" : dummy_mat,
+								},
+				mat_attr_dicts :{
+								"screen" : {},
+								"antenna" : {},
+								"glass" : {},
+								"lens" : {},
+								"shiny_black" : {},
+								"tex_metal" : {},
+								"flash_cover" : {},
+								"dir_tex_metal" : {},
+								"metal" : {},
+								"grey_matte" : {}
+								},
+				mat_attr_dict :{
+								color: 0xffffff,
+								metalness: 0,
+								roughness: .5,
+								ior: 1.5,
+								thickness: 0.01,
+								transmission: 0,
+								}
+			};
+			// "screen_mat",
+			// "back", 
+			// "antenna",
+			// "glass",
+			// "lens",
+			// "shiny_black",
+			// "tex_metal",
+			// "flash_cover",
+			// "dir_tex_metal",
+			// "metal",
+			// "grey_matte"
+
+
+			const params = {
+				color: 0xffffff,
+				phone_color: 0x8abd82,
+
+				dir_metalness:1,
+				dir_roughness:.5,
+
+				metal_color: 0xc0c0c0,
+				metal_metalness:1,
+				metal_roughness:.5,
+
+
+				back_transm: 1,
+				back_roughness: 0,
+				back_ior: 1.5,
+				back_thickness: 0.01,
+
+				glass_color:0xc0c0c0,
+				glass_transm: 0,
+
+				back_transmission: 1,
+				back_opacity: 1,
+				// metalness: 0,
+				back_roughness: 0.32,
+				back_ior: 2,
+				back_thickness: 0,
+				back_attenuationColor: 0x8abd82,
+				back_attenuationDistance: 0.155,
+				back_specularIntensity: 1,
+				back_specularColor: 0xffffff,
+				// envMapIntensity: 1,
+				// lightIntensity: 1,
+
+				// envMapIntensity: 1,
+				// lightIntensity: 1,
+				// exposure: 1,
+				child_types: "",
+				models: "",
+				mats: "",
+				phone_color_mats: ""
+			};
+			let params_out = JSON.stringify(params);
+			console.log(params_out);
+			function export_data(export_object, export_name) {
+				var data_str = 'data:text/json;charset=utf-8,' + encodeURIComponent(export_object);
+				var export_node = document.createElement('a');
+				export_node.setAttribute('href', data_str);
+				export_node.setAttribute('download', export_name + '.json');
+				document.body.appendChild(export_node);
+				export_node.click();
+				export_node.remove();
+			};
+			var blob_data = new Blob([params_out], {type: 'data:text/json;charset=utf-8'});
+			// export_data(params_out, "iphone15_mat_attrs");
+			// console.log(saveAs(blob_data, "test.json"));
+			// init();
+			// animate();
+			camera, scene, renderer = setup_scene();
+
+			function loader_func(){
+				const hdrEquirect = new RGBELoader()
+					.setPath( 'textures/equirectangular/' )
+					// .load( 'field.hdr', function () {
+					.load( 'indoor.hdr', function () {
+
+						hdrEquirect.mapping = THREE.EquirectangularReflectionMapping;
+
+						new GLTFLoader()
+							.setPath( 'models/gltf/' )
+							.load( 'iphone.glb', function ( gltf ) {
+
+								gltf.scene.traverse( function ( child ) {
+									const color = new THREE.Color();
+
+									all_meshes.push(child.name);
+									if ( child.isMesh){
+										all_meshes.push(child.name);
+
+										// child.castShadow = true;
+										// child.receiveShadow = true;
+										all_mats.push(child.material.type)
+
+										if (child.material.isMeshPhysicalMaterial) {
+											// I am setting transmission to .01 in blender before my gltf export to force it to export pbr
+											// Set it back to 0 here. I can turn it on per material where it makes sense 
+											child.material.transmission = 0;
+											if (phone_color_mat_names.includes(child.name)){
+												phone_color_mats.push(child.material);
+												child.material.color.set( params.phone_color);
+
+											}
+											if (dir_metal_mat_names.includes(child.name)){
+												dir_metal_mats.push(child.material);
+												//metallic, roughness
+
+											}
+
+											if (child.name.includes("back")){
+												back_mat = child.material
+												back_mat.roughness = params.back_roughness;
+												// back_mat.metalness = params.metalness;
+												back_mat.ior = params.back_ior;
+												back_mat.opacity = params.back_opacity;
+												back_mat.specularIntensity = params.back_specularIntensity;
+												back_mat.transmission = params.back_transmission;
+												back_mat.thickness = params.back_thickness;
+												back_mat.attenuationColor.set( params.back_attenuationColor);
+												back_mat.attenuationDistance = params.back_attenuationDistance;
+
+												// params.roughness = back_mat.material.roughness;
+												// params.metalness = back_mat.material.metalness;
+
+												// params.ior = back_mat.material.ior;
+												// params.specularIntensity = back_mat.material.specularIntensity;
+
+												// params.transmission = back_mat.material.transmission;
+												// params.thickness = back_mat.material.thickness;
+												// params.attenuationColor = color.copy( back_mat.material.attenuationColor ).getHex();
+												// params.attenuationDistance = back_mat.material.attenuationDistance;
+
+											}
+											if (child.name.includes("metal")){
+											}
+											if (child.name.includes("antenna")){
+											}
+											if (child.name.includes("glass")){
+											}
+											if (child.name.includes("lens")){
+											}
+											if (child.name.includes("shiny_black")){
+											}
+											if (child.name.includes("flash_cover")){
+											}
+											if (child.name.includes("grey_matte")){
+											}
+
+
+
+
+
+
+
+
+
+
+											// all_mats.push("child.material")
+											// if (child.name.includes("glass")){
+
+											// }
+
+										}
+									} 
+								});
+	
+								
+								init();
+								all_models = gltf.scene;
+								scene.add( gltf.scene );
+
+								scene.environment = hdrEquirect;
+								scene.background = hdrEquirect;
+								scene.environmentIntensity = 1;
+								scene.backgroundBlurriness = 1;
+
+
+							} );
+
+
+					} );
+				}
+
+			function some_stupid_func(){
+				
+			}
+
+			loader_func();
+
 
 			init();
 			animate();
 
+
 			function init() {
 
-				// Camera
-				camera = new THREE.PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 0.001, 1000 );
-				camera.position.set(.3, .3, -.3);
-
-				// Renderer
-				renderer = new THREE.WebGLRenderer({antialias : true});
-				renderer.setPixelRatio( window.devicePixelRatio );	
-				renderer.setSize(window.innerWidth, window.innerHeight);
-				renderer.shadowMap.enabled = true;
-				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-				renderer.setClearColor(.2,.2,.2);
-
-				document.body.appendChild(renderer.domElement);
-
-				// Scene
-				scene = new THREE.Scene();
-
 				// Lights
-				const hemi_light = new THREE.HemisphereLight( 0xffffff, 0xbbbbff, 1 );
-				scene.add( hemi_light );
+				hemi_light, dir_light = create_lights();
 
-				var dir_light = new THREE.SpotLight( 0xffffff, 2.0 );
-				dir_light.position.set( 1, 1, 1);
-				dir_light.castShadow = true;
-				dir_light.shadow.mapSize.set(2048,2048);
-				dir_light.shadow.intensity = 1;
-				scene.add(dir_light);
-				
 				///// Debug Geom /////
-				material = new THREE.MeshPhongMaterial();
-				geometry = new THREE.BoxGeometry( 0.01, 0.01, 0.01 );
-				mesh = new THREE.Mesh( geometry, material );
+				// material = new THREE.MeshPhongMaterial();
+				// geometry = new THREE.BoxGeometry( 0.01, 0.01, 0.01 );
+				// mesh = new THREE.Mesh( geometry, material );
 				// scene.add( mesh );
 				//////////////////////
-
-
-				new RGBELoader()
-					.setPath( 'tex/equirectangular/' )
-					.load( 'studio_small.hdr', function ( texture ) {
-
-						texture.mapping = THREE.EquirectangularReflectionMapping;
-
-					// GLTF Loader
-					new GLTFLoader()
-						.setPath( 'models/gltf/' )
-						.load( 'iphone.glb', function ( gltf ) {
-							gltf.scene.traverse( function ( child ) {
-								if ( child.isMesh){
-									child.castShadow = true;
-									child.receiveShadow = true;
-									child.material.side = THREE.FrontSide;
-								}
-								all_models = gltf.scene
-
-								scene.add( gltf.scene );
-
-							});
-
-						} );
-						// scene.background = texture;
-						scene.environment = texture;
-						scene.environmentIntensity = 1;
-						scene.backgroundBlurriness = .5;
-						render();
-
-
-					} );
-
-
 
 				// controls
 				const controls = new OrbitControls( camera, renderer.domElement );
 
-				/////////////// ssao pass ////////////////
-				composer = new EffectComposer( renderer );
-				renderPass = new RenderPass( scene, camera );
-				composer.addPass( renderPass );
-				saoPass = new SAOPass( scene, camera );
-				composer.addPass( saoPass );
-				const outputPass = new OutputPass();
-				composer.addPass( outputPass );
+				// post-processing
+				ssao_pass();
+				create_gui();
 
-				saoPass.params.saoIntensity = .15;
-				saoPass.params.saoScale = 70;
-				saoPass.params.saoKernelRadius = 100;
-				saoPass.params.saoBlurRadius = 5;
-				saoPass.enabled = true;
-				////////////////////////////////////////////
 				window.addEventListener( 'resize', onWindowResize );
 
 			}
+
+
+
 			function onWindowResize() {
 
 			camera.aspect = window.innerWidth / window.innerHeight;
 			camera.updateProjectionMatrix();
 
 			renderer.setSize( window.innerWidth, window.innerHeight );
+			// renderer.setPixelRatio( window.devicePixelRatio );	
 
 			}
+			function dummy(){
 
+			}
 
 			function animate() {
 
@@ -160,7 +390,184 @@
 				composer.render();
 
 				}
+			
+			// helper funcs
+			function setup_scene() {
 
+				// Camera
+				camera = new THREE.PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 0.001, 1000 );
+				camera.position.set(.3, .3, -.3);
+
+				// Renderer
+				renderer = new THREE.WebGLRenderer({antialias : true});
+				renderer.setPixelRatio( window.devicePixelRatio );	
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				renderer.setClearColor(0xFEFEFE);
+
+				document.body.appendChild(renderer.domElement);
+
+				// Scene
+				scene = new THREE.Scene();
+
+				return camera, scene, renderer;
+			}
+
+			function create_lights() {
+				// Lights
+				const hemi_light = new THREE.HemisphereLight( 0xffffff, 0xbbbbff, 1 );
+				scene.add( hemi_light );
+
+				const dir_light = new THREE.SpotLight( 0xffffff, 2.0 );
+				dir_light.position.set( 1, 1, 1);
+				dir_light.castShadow = true;
+				dir_light.shadow.mapSize.set(2048,2048);
+				dir_light.shadow.intensity = 1;
+				const d = 10;
+
+				dir_light.shadow.camera.left = - d;
+				dir_light.shadow.camera.right = d;
+				dir_light.shadow.camera.top = d;
+				dir_light.shadow.camera.bottom = - d;
+				dir_light.shadow.camera.far = 2;
+				dir_light.shadow.camera.near = .01;
+
+				dir_light.shadow.normalBias = 0.01;
+				dir_light.shadow.bias = 0.0001;
+
+				dir_light.shadow.intensity = 1;
+				dir_light.shadow.radius = 10;
+				// scene.add( new THREE.CameraHelper( dir_light.shadow.camera ) );
+
+				scene.add(dir_light);
+				return hemi_light, dir_light
+			}
+
+			function ssao_pass() {
+				composer = new EffectComposer( renderer );
+				renderPass = new RenderPass( scene, camera );
+				composer.addPass( renderPass );
+				saoPass = new SAOPass( scene, camera );
+				composer.addPass( saoPass );
+				const outputPass = new OutputPass();
+				composer.addPass( outputPass );
+
+				saoPass.params.saoIntensity = .1;
+				saoPass.params.saoScale = 70;
+				saoPass.params.saoKernelRadius = 100;
+				saoPass.params.saoBlurRadius = 5;
+				saoPass.enabled = true;
+			}
+
+			function create_gui(){
+	
+
+				// gui
+				const gui = new GUI();
+				const back_folder = gui.addFolder("back");
+				back_folder.add( params, 'models' ).options( all_meshes ).onChange(dummy);
+				back_folder.add( params, 'mats' ).options( all_mats ).onChange(dummy);
+				back_folder.add( params, 'phone_color_mats' ).options( phone_color_mats ).onChange(dummy);
+
+
+				gui.addColor( params, 'phone_color' )
+					.onChange( function () {
+						phone_color_mats.forEach(mat => {
+							mat.color.set( params.phone_color );
+							render();
+							});
+						});
+
+				
+				gui.add( params, 'back_transmission', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.transmission = params.back_transmission;
+						render();
+
+					} );
+
+
+				gui.add( params, 'back_roughness', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.roughness = params.back_roughness;
+						render();
+
+					} );
+
+				gui.add( params, 'back_ior', 1, 2, 0.01 )
+					.onChange( function () {
+
+						back_mat.ior = params.back_ior;
+						render();
+
+					} );
+
+				gui.add( params, 'back_opacity', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.opacity = params.back_opacity;
+						const transparent = params.back_opacity < 1;
+
+						if ( transparent !== back_mat.transparent ) {
+
+							back_mat.transparent = transparent;
+							back_mat.needsUpdate = true;
+
+						}
+
+						render();
+
+					} );
+
+				gui.add( params, 'back_thickness', 0, 5, 0.01 )
+					.onChange( function () {
+
+						back_mat.thickness = params.back_thickness;
+						render();
+
+					} );
+
+				gui.addColor( params, 'back_attenuationColor' )
+					.name( 'attenuation color' )
+					.onChange( function () {
+
+						back_mat.attenuationColor.set( params.back_attenuationColor );
+						render();
+
+					} );
+
+				gui.add( params, 'back_attenuationDistance', 0, 10, 0.01 )
+					.onChange( function () {
+
+						back_mat.attenuationDistance = params.back_attenuationDistance;
+						render();
+
+					} );
+
+				gui.add( params, 'back_specularIntensity', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.specularIntensity = params.back_specularIntensity;
+						render();
+
+					} );
+
+				gui.addColor( params, 'back_specularColor' )
+					.onChange( function () {
+
+						back_mat.specularColor.set( params.back_specularColor );
+						render();
+
+					} );
+
+
+				gui.open();
+
+
+			}
 		</script>
 
 	</body>

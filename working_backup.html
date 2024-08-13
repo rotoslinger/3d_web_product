@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - loaders - OBJ loader</title>
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+	</head>
+
+	<body>
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three';
+
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+			import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+			// Post Processing
+			import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+			import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+			import { SAOPass } from 'three/addons/postprocessing/SAOPass.js';
+			import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+			
+			// Gui
+			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+
+
+
+
+			var camera, scene, renderer ;
+			var geometry, material, mesh, all_models, gltf_meshes;
+
+			//ssao
+			let composer, renderPass, saoPass,container, stats, hemi_light, dir_light;
+			let screen_mat, back_mat, antenna_mat, glass_mat, lens_mat, shiny_black_mat, tex_metal_mat, flash_cover_mat, dir_tex_metal_mat, metal_mat, grey_matte_mat;
+			let all_meshes = [];
+			let all_mats = [];
+
+
+			const params = {
+				color: 0xffffff,
+				transmission: 1,
+				opacity: 1,
+				metalness: 0,
+				roughness: 0,
+				ior: 1.5,
+				thickness: 0.01,
+				attenuationColor: 0xffffff,
+				attenuationDistance: 1,
+				specularIntensity: 1,
+				specularColor: 0xffffff,
+				envMapIntensity: 1,
+				lightIntensity: 1,
+				exposure: 1,
+				child_types: "",
+				models: "",
+				mats: ""
+			};
+
+
+
+			init();
+			animate();
+
+
+			function init() {
+				camera, scene, renderer = setup_scene();
+
+				// Lights
+				hemi_light, dir_light = setup_lights();
+
+				///// Debug Geom /////
+				// material = new THREE.MeshPhongMaterial();
+				// geometry = new THREE.BoxGeometry( 0.01, 0.01, 0.01 );
+				// mesh = new THREE.Mesh( geometry, material );
+				// scene.add( mesh );
+				//////////////////////
+
+				all_meshes = load_glb();
+				all_meshes.push("DSG");
+				all_meshes.push("sadfsdf");
+				all_meshes.push("AdFASFd");
+				// gltf_meshes = all_models.children;
+				// all_models.traverse( function ( child ) {
+				// 	all_meshes.push(child.type);
+
+				// 	if ( child.isMesh && child.material.isMeshPhysicalMaterial ) {
+				// 		all_meshes.push(child.name);
+				// 		all_mats.push(child.material.name);
+				// 		all_meshes.push(child.name);
+
+				// 		child.castShadow = true;
+				// 		child.receiveShadow = true;
+				// 		child.material.side = THREE.FrontSide;
+				// 	}
+				// });
+
+				// controls
+				const controls = new OrbitControls( camera, renderer.domElement );
+
+				// post-processing
+				ssao_pass();
+				
+
+				// gui
+				const gui = new GUI();
+				gui.add( params, 'models' ).options( all_meshes ).onChange(dummy);
+				gui.add( params, 'mats' ).options( ["bla", "blabloop"] ).onChange(dummy);
+
+				// gui.add( params, 'mats' ).options( [all_mats] ).onChange(dummy);
+				// gui.add( ui_vars, 'names' ).options( name_list ).onChange(test );
+				// gui.add( ui_vars, 'model' ).options( [ 'apple icon', 'japanese_oni' ] )
+
+
+
+
+				gui.addColor( params, 'color' )
+					.onChange( function () {
+
+						back_mat.color.set( params.color );
+						render();
+
+					} );
+
+				gui.add( params, 'transmission', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.transmission = params.transmission;
+						render();
+
+					} );
+
+				gui.add( params, 'opacity', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.opacity = params.opacity;
+						const transparent = params.opacity < 1;
+
+						if ( transparent !== back_mat.transparent ) {
+
+							back_mat.transparent = transparent;
+							back_mat.needsUpdate = true;
+
+						}
+
+						render();
+
+					} );
+
+				gui.add( params, 'metalness', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.metalness = params.metalness;
+						render();
+
+					} );
+
+				gui.add( params, 'roughness', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.roughness = params.roughness;
+						render();
+
+					} );
+
+				gui.add( params, 'ior', 1, 2, 0.01 )
+					.onChange( function () {
+
+						back_mat.ior = params.ior;
+						render();
+
+					} );
+
+				gui.add( params, 'thickness', 0, 5, 0.01 )
+					.onChange( function () {
+
+						back_mat.thickness = params.thickness;
+						render();
+
+					} );
+
+				gui.addColor( params, 'attenuationColor' )
+					.name( 'attenuation color' )
+					.onChange( function () {
+
+						back_mat.attenuationColor.set( params.attenuationColor );
+						render();
+
+					} );
+
+				gui.add( params, 'attenuationDistance', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.attenuationDistance = params.attenuationDistance;
+						render();
+
+					} );
+
+				gui.add( params, 'specularIntensity', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.specularIntensity = params.specularIntensity;
+						render();
+
+					} );
+
+				gui.addColor( params, 'specularColor' )
+					.onChange( function () {
+
+						back_mat.specularColor.set( params.specularColor );
+						render();
+
+					} );
+
+				gui.add( params, 'envMapIntensity', 0, 1, 0.01 )
+					.name( 'envMap intensity' )
+					.onChange( function () {
+
+						back_mat.envMapIntensity = params.envMapIntensity;
+						render();
+
+					} );
+
+				gui.add( params, 'exposure', 0, 1, 0.01 )
+					.onChange( function () {
+
+						renderer.toneMappingExposure = params.exposure;
+						render();
+
+					} );
+
+				gui.open();
+
+
+				window.addEventListener( 'resize', onWindowResize );
+
+			}
+			function load_glb(){
+				let return_list = [];
+				new RGBELoader()
+					.setPath( 'textures/equirectangular/' )
+					.load( 'indoor.hdr', function ( texture ) {
+
+						texture.mapping = THREE.EquirectangularReflectionMapping;
+
+					// GLTF Loader
+					new GLTFLoader()
+						.setPath( 'models/gltf/' )
+						.load( 'iphone.glb', function ( gltf ) {
+							all_models = gltf.scene;
+							return_list.push("this is inside the loader");
+							gltf.scene.traverse( function ( child ) {
+								return_list.push("inside the traverse");
+							})
+
+							// gltf_meshes = all_models.children;
+							// for (let child of gltf_meshes) {
+							// 	all_meshes.push(child);
+
+							// if ( child.isMesh && child.material.isMeshPhysicalMaterial ) {
+							// 	all_meshes.push(child.type);
+							// 	all_mats.push(child.material.name);
+							// 	all_meshes.push(child.name);
+							// 	}
+
+							// };
+
+
+							
+							scene.add( gltf.scene );
+						} );
+						scene.background = texture;
+						scene.environment = texture;
+						scene.environmentIntensity = 1;
+						scene.backgroundBlurriness = .5;
+						render();
+						
+					} );
+					// return_list.push("afdsf");
+					// return_list.push("sadSDFADFfsdf");
+					// return_list.push("aFSdgdfg");
+					
+					// for(let i in all_models){
+					// 	return_list.push(i.type);
+
+					// }
+
+
+					return return_list;
+			}
+
+
+			// new GLTFLoader().load( 'models/PrimaryIonDrive.glb', function ( gltf ) {
+			// 		const model = gltf.scene;
+			// 		model.traverse( function( object ) {
+			// 		object.layers.enable(BLOOM_LAYER);
+			// 		});
+			// 		scene.add( model );
+			// 		});
+
+
+
+
+			function onWindowResize() {
+
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+			function dummy(){
+
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				// rotational debug:
+				// all_models.rotation.y += 0.004;
+				// });
+				renderer.render( scene, camera );
+
+
+				render();
+
+			}
+			function render() {
+
+				composer.render();
+
+				}
+			
+			// helper funcs
+			function setup_scene() {
+
+				// Camera
+				camera = new THREE.PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 0.001, 1000 );
+				camera.position.set(.3, .3, -.3);
+
+				// Renderer
+				renderer = new THREE.WebGLRenderer({antialias : true});
+				renderer.setPixelRatio( window.devicePixelRatio );	
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				renderer.setClearColor(0xFEFEFE);
+
+				document.body.appendChild(renderer.domElement);
+
+				// Scene
+				scene = new THREE.Scene();
+
+				return camera, scene, renderer;
+			}
+
+			function setup_lights() {
+				// Lights
+				const hemi_light = new THREE.HemisphereLight( 0xffffff, 0xbbbbff, 1 );
+				scene.add( hemi_light );
+
+				const dir_light = new THREE.SpotLight( 0xffffff, 2.0 );
+				dir_light.position.set( 1, 1, 1);
+				dir_light.castShadow = true;
+				dir_light.shadow.mapSize.set(2048,2048);
+				dir_light.shadow.intensity = 1;
+				scene.add(dir_light);
+				return hemi_light, dir_light
+			}
+
+			function ssao_pass() {
+				composer = new EffectComposer( renderer );
+				renderPass = new RenderPass( scene, camera );
+				composer.addPass( renderPass );
+				saoPass = new SAOPass( scene, camera );
+				composer.addPass( saoPass );
+				const outputPass = new OutputPass();
+				composer.addPass( outputPass );
+
+				saoPass.params.saoIntensity = .15;
+				saoPass.params.saoScale = 70;
+				saoPass.params.saoKernelRadius = 100;
+				saoPass.params.saoBlurRadius = 5;
+				saoPass.enabled = true;
+			}
+
+			function create_gui(){
+				const gui = new GUI();
+
+				gui.addColor( params, 'color' )
+					.onChange( function () {
+
+						back_mat.color.set( params.color );
+						render();
+
+					} );
+
+				gui.add( params, 'transmission', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.transmission = params.transmission;
+						render();
+
+					} );
+
+				gui.add( params, 'opacity', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.opacity = params.opacity;
+						const transparent = params.opacity < 1;
+
+						if ( transparent !== back_mat.transparent ) {
+
+							back_mat.transparent = transparent;
+							back_mat.needsUpdate = true;
+
+						}
+
+						render();
+
+					} );
+
+				gui.add( params, 'metalness', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.metalness = params.metalness;
+						render();
+
+					} );
+
+				gui.add( params, 'roughness', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.roughness = params.roughness;
+						render();
+
+					} );
+
+				gui.add( params, 'ior', 1, 2, 0.01 )
+					.onChange( function () {
+
+						back_mat.ior = params.ior;
+						render();
+
+					} );
+
+				gui.add( params, 'thickness', 0, 5, 0.01 )
+					.onChange( function () {
+
+						back_mat.thickness = params.thickness;
+						render();
+
+					} );
+
+				gui.addColor( params, 'attenuationColor' )
+					.name( 'attenuation color' )
+					.onChange( function () {
+
+						back_mat.attenuationColor.set( params.attenuationColor );
+						render();
+
+					} );
+
+				gui.add( params, 'attenuationDistance', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.attenuationDistance = params.attenuationDistance;
+						render();
+
+					} );
+
+				gui.add( params, 'specularIntensity', 0, 1, 0.01 )
+					.onChange( function () {
+
+						back_mat.specularIntensity = params.specularIntensity;
+						render();
+
+					} );
+
+				gui.addColor( params, 'specularColor' )
+					.onChange( function () {
+
+						back_mat.specularColor.set( params.specularColor );
+						render();
+
+					} );
+
+				gui.add( params, 'envMapIntensity', 0, 1, 0.01 )
+					.name( 'envMap intensity' )
+					.onChange( function () {
+
+						back_mat.envMapIntensity = params.envMapIntensity;
+						render();
+
+					} );
+
+				gui.add( params, 'exposure', 0, 1, 0.01 )
+					.onChange( function () {
+
+						renderer.toneMappingExposure = params.exposure;
+						render();
+
+					} );
+
+				gui.open();
+
+			}
+		</script>
+
+	</body>
+</html>

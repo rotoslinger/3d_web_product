@@ -45,9 +45,9 @@ If you are starting from the three_js_boilerplate this step can be skipped.
 
 npm installs the code for each dependency in a new node_modules/ folder. When Vite builds your application, it sees imports for 'three' and pulls three.js files automatically from this folder. The node_modules/ folder is used only during development, and shouldn't be uploaded to your web hosting provider or committed to version history.
 
+## Begin testing
 
-
-#### 3.  In terminal, in your root directory, run:
+#### 1.  In terminal, in your root directory, run:
     npx vite --host
 
 you should see two very important lines:
@@ -85,6 +85,19 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 # Live Demo
 [Apple_AR](https://rotoslinger.github.io/Apple_AR/)
+
+# Blender Python snippet for forcing physical material export on selected objects
+
+<!-- import bpy
+
+mesh_objs = [ob for ob in bpy.context.selected_objects if ob.type == 'MESH']
+print(mesh_objs)
+
+for mesh in mesh_objs:
+    mat = mesh.data.materials[0] 
+    mat.node_tree.nodes["Principled BSDF"].inputs[17].default_value = 0.2
+ -->
+
 
 ### Three.js usdz limitations
 Quads are not well not supported, and subdivided surfaces even less so. Three has attempted to fix this, but depending on complexity your exported mesh can appear mangled in renders.

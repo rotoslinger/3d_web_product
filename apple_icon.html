@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>threejs webgl - materials - transmission - alpha</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+
+
+	</head>
+	<body>
+
+
+		<div id="container"></div>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three';
+
+			// import { custom_shader } from './custom_shader.js';
+
+
+			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+			import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+			import { SubsurfaceScatteringShader } from 'three/addons/shaders/SubsurfaceScatteringShader.js';
+
+
+			// AO pass
+			import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+			import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+			import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
+			import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+
+
+
+			const ui_vars = {
+				color: 0xffffff,
+				transmission: 1,
+				// opacity: 1,
+				roughness: 0,
+				ior: 1.5,
+				thickness: 0.01,
+				attenuationColor: 0xffffff,
+				attenuationDistance: 1,
+				specularIntensity: 1,
+				specularColor: 0xffffff,
+				envMapIntensity: 1,
+				lightIntensity: 1,
+				exposure: 1,
+				model: 'apple icon',
+				names: 'oni',
+				model_names: "names"
+			};
+
+			let camera, scene, renderer;
+
+			let mesh, all_models, oni_mesh, material, glass_material, backing_material, icon_material;
+
+
+			let name_list = [];
+			let apple= [];
+			let oni= [];
+			// let all_models = [];
+			let all_models_names = [];
+			const hdrEquirect = new RGBELoader()
+				.setPath( 'textures/equirectangular/' )
+				// .load( 'field.hdr', function () {
+				.load( 'japanese_garden.hdr', function () {
+
+					hdrEquirect.mapping = THREE.EquirectangularReflectionMapping;
+
+					new GLTFLoader()
+						.setPath( 'models/gltf/' )
+						.load( 'apple_icon.glb', function ( gltf ) {
+
+							gltf.scene.traverse( function ( child ) {
+								all_models_names.push(child.name);
+								if ( child.isMesh){
+									child.castShadow = true;
+									child.receiveShadow = true;
+									if ( child.isMesh && child.name.includes("apple") || child.name.includes("glass")){
+										apple.push(child);
+										// child.visible = false;
+
+									} else if (child.name.includes("oni")) {
+										oni.push(child);
+										child.visible = false;
+
+									}
+									if ( child.isMesh && child.name.includes("apple") ){
+										// apple.push(child);
+										// child.material.roughness = child.material.roughness*.5;
+										// child.visible = false;
+									}
+
+									// name_list.push(child.name);
+									if (child.material.isMeshPhysicalMaterial || child.name.includes("glass")) {
+										name_list.push(child.name);
+
+
+										// if ( child.isMesh && child.name.includes("poooo") ) {
+
+										mesh = child;
+										glass_material = mesh.material;
+
+										const color = new THREE.Color();
+
+										ui_vars.color = color.copy( mesh.material.color ).getHex();
+										ui_vars.roughness = mesh.material.roughness;
+										mesh.material.ior = 2;
+										// ui_vars.ior = mesh.material.ior;
+										ui_vars.specularIntensity = mesh.material.specularIntensity;
+
+										// ui_vars.transmission = mesh.material.transmission;
+										// ui_vars.thickness = mesh.material.thickness;
+										// ui_vars.attenuationColor = color.copy( mesh.material.attenuationColor ).getHex();
+										// ui_vars.attenuationDistance = mesh.material.attenuationDistance;
+
+									}
+
+								} 
+							});
+ 
+							
+							init();
+							all_models = gltf.scene;
+							scene.add( gltf.scene );
+
+							scene.environment = hdrEquirect;
+							scene.background = hdrEquirect;
+							scene.environmentIntensity = 1;
+							scene.backgroundBlurriness = .1;
+
+							render();
+
+						} );
+
+
+				} );
+
+
+
+
+
+			function test() {
+			};
+
+
+			function toggle_vis(model_object) {
+				model_object.visible = ! model_object.visible;
+			};
+
+
+
+
+			function init() {
+
+				renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				document.body.appendChild( renderer.domElement );
+				renderer.shadowMap.soft = true;
+
+				// renderer.toneMapping = THREE.ACESFilmicToneMapping;
+				// renderer.toneMappingExposure = ui_vars.exposure;
+
+				// accommodate CSS table
+				renderer.domElement.style.position = 'absolute';
+				renderer.domElement.style.top = 0;
+
+				scene = new THREE.Scene();
+
+
+				// LIGHTS
+
+				const hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 1 );
+				hemiLight.color.setHSL( 0.6, 1, 0.6 );
+				hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
+				hemiLight.position.set( 0, 0, 0 );
+				scene.add( hemiLight );
+
+
+				const dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
+				dirLight.color.setHSL( 0.1, 1, 0.95 );
+				dirLight.position.set( -1,2,-3 );
+				// dirLight.position.multiplyScalar( 30 );
+				scene.add( dirLight );
+
+				dirLight.castShadow = true;
+
+				dirLight.shadow.mapSize.width = 512;
+				dirLight.shadow.mapSize.height = 512;
+
+				const d = .5;
+
+				dirLight.shadow.camera.left = - d;
+				dirLight.shadow.camera.right = d;
+				dirLight.shadow.camera.top = d;
+				dirLight.shadow.camera.bottom = - d;
+
+				dirLight.shadow.camera.far = 10;
+				dirLight.shadow.camera.near = .01;
+
+				dirLight.shadow.normalBias = 0.01;
+				dirLight.shadow.bias = 0.0001;
+
+				dirLight.shadow.intensity = 1;
+				dirLight.shadow.radius = 10;
+				// scene.add( new THREE.CameraHelper( dirLight.shadow.camera ) );
+
+
+
+
+
+				camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, .01, 2000000 );
+				camera.position.set( -.35, .1, -.3
+				 );
+
+				const controls = new OrbitControls( camera, renderer.domElement );
+				controls.addEventListener( 'change', render ); // use if there is no animation loop
+				controls.minDistance = .01;
+				controls.maxDistance = 1;
+				controls.target.y = 0.0;
+				controls.update();
+
+				window.addEventListener( 'resize', onWindowResize );
+
+				//
+				
+
+				const gui = new GUI();
+				gui.add( ui_vars, 'model' ).options( [ 'apple icon', 'japanese_oni' ] )
+					.onChange( function () {
+						oni.forEach(toggle_vis);
+						apple.forEach(toggle_vis);
+						scene.environmentIntensity = ! scene.environmentIntensity;
+						all_models.rotation.y = 0
+
+					render();
+
+					} );
+
+				gui.add( ui_vars, 'model_names' ).options( all_models_names ).onChange(test );
+
+				// gui.addColor( ui_vars, 'color' )
+				// 	.onChange( function () {
+
+				// 		glass_material.color.set( ui_vars.color );
+				// 		render();
+
+				// 	} );
+
+
+				// gui.add( ui_vars, 'transmission', 0, 1, 0.01 )
+				// 	.onChange( function () {
+
+				// 		glass_material.transmission = ui_vars.transmission;
+				// 		render();
+
+				// 	} );
+
+
+				// gui.add( ui_vars, 'roughness', 0, 1, 0.01 )
+				// 	.onChange( function () {
+
+				// 		glass_material.roughness = ui_vars.roughness;
+				// 		render();
+
+				// 	} );
+
+				// // gui.add( ui_vars, 'ior', 1, 2, 0.01 )
+				// // 	.onChange( function () {
+
+				// // 		glass_material.ior = ui_vars.ior;
+				// // 		render();
+
+				// // 	} );
+
+				// gui.add( ui_vars, 'thickness', 0, 5, 0.01 )
+				// 	.onChange( function () {
+
+				// 		glass_material.thickness = ui_vars.thickness;
+				// 		render();
+
+				// 	} );
+
+				// gui.addColor( ui_vars, 'attenuationColor' )
+				// 	.name( 'attenuation color' )
+				// 	.onChange( function () {
+
+				// 		glass_material.attenuationColor.set( ui_vars.attenuationColor );
+				// 		render();
+
+				// 	} );
+
+				// gui.add( ui_vars, 'attenuationDistance', 0, 1, 0.01 )
+				// 	.onChange( function () {
+
+				// 		glass_material.attenuationDistance = ui_vars.attenuationDistance;
+				// 		render();
+
+				// 	} );
+
+				// gui.add( ui_vars, 'specularIntensity', 0, 1, 0.01 )
+				// 	.onChange( function () {
+
+				// 		glass_material.specularIntensity = ui_vars.specularIntensity;
+				// 		render();
+
+				// 	} );
+
+				// gui.addColor( ui_vars, 'specularColor' )
+				// 	.onChange( function () {
+
+				// 		glass_material.specularColor.set( ui_vars.specularColor );
+				// 		render();
+
+				// 	} );
+
+				// gui.add( ui_vars, 'envMapIntensity', 0, 1, 0.01 )
+				// 	.name( 'envMap intensity' )
+				// 	.onChange( function () {
+
+				// 		glass_material.envMapIntensity = ui_vars.envMapIntensity;
+				// 		scene.environmentIntensity = ui_vars.envMapIntensity;
+				// 		render();
+
+				// 	} );
+
+				// gui.add( ui_vars, 'exposure', 0, 1, 0.01 )
+				// 	.onChange( function () {
+
+				// 		renderer.toneMappingExposure = ui_vars.exposure;
+				// 		render();
+
+				// 	} );
+
+				gui.open();
+
+			}
+
+			function onWindowResize() {
+
+				const width = window.innerWidth;
+				const height = window.innerHeight;
+
+				camera.aspect = width / height;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( width, height );
+
+				render();
+
+			}
+
+			//
+
+			function render() {
+
+				renderer.render( scene, camera );
+
+			}
+			animate();
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+				// rotational debug:
+				// all_models.forEach(goem => {
+				all_models.rotation.y += 0.004;
+				// });
+				// all_models.rotation.z += 0.01;
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
