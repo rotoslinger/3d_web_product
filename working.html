@@ -35,7 +35,8 @@
 
 			// File system reading writing, etc
 			import * as fs from 'fs';
-			import {saveAs} from 'file-saver';
+			import { saveAs } from 'file-saver';
+			import { gui_map } from './vars.js';
 
 			var camera, scene, renderer ;
 			var geometry, material, mesh, all_models, gltf_meshes;
@@ -102,11 +103,7 @@
 							"grey_matte"
 							]
 
-
-
-			let material_map = {
-				current_mesh : "screen",
-				mesh_mat_dict : {
+			let mesh_mat_dict = {
 								"screen" : dummy_mat,
 								"antenna" : dummy_mat,
 								"glass" : dummy_mat,
@@ -117,28 +114,40 @@
 								"dir_tex_metal" : dummy_mat,
 								"metal" : dummy_mat,
 								"grey_matte" : dummy_mat,
-								},
-				mat_attr_dicts :{
-								"screen" : {},
-								"antenna" : {},
-								"glass" : {},
-								"lens" : {},
-								"shiny_black" : {},
-								"tex_metal" : {},
-								"flash_cover" : {},
-								"dir_tex_metal" : {},
-								"metal" : {},
-								"grey_matte" : {}
-								},
-				mat_attr_dict :{
-								color: 0xffffff,
-								metalness: 0,
-								roughness: .5,
-								ior: 1.5,
-								thickness: 0.01,
-								transmission: 0,
 								}
-			};
+
+
+
+			// let gui_map = {
+			// 	mat_attr_dicts :{
+			// 					"screen" : {},
+			// 					"antenna" : {},
+			// 					"glass" : {},
+			// 					"lens" : {},
+			// 					"shiny_black" : {},
+			// 					"tex_metal" : {},
+			// 					"flash_cover" : {},
+			// 					"dir_tex_metal" : {},
+			// 					"metal" : {},
+			// 					"grey_matte" : {}
+			// 					},
+			// 	mat_attr_dict :{
+			// 					color: 0xffffff,
+			// 					metalness: 0,
+			// 					roughness: .5,
+			// 					ior: 1.5,
+			// 					thickness: 0.01,
+			// 					transmission: 0,
+			// 					}
+			// };
+
+
+			// gui_map["mat_attr_dicts"]["screen"] = gui_map["mat_attr_dict"];
+			// for (const [key, value] of Object.entries(gui_map["mat_attr_dicts"])) {
+			// 	gui_map["mat_attr_dicts"][key] = gui_map["mat_attr_dict"];
+
+			// }
+
 			// "screen_mat",
 			// "back", 
 			// "antenna",
@@ -353,14 +362,20 @@
 				create_gui();
 
 				window.addEventListener( 'resize', onWindowResize );
-				// window.addEventListener( 'resize', onim );
+				window.addEventListener( 'beforeunload', window_refresh );
 
 			}
+
+			function window_refresh(){
+				save_data();
+			};
+
 			function save_data(){
 			// let params_out = JSON.stringify(params);
 			// console.log(params_out);
-			var blob_data = new Blob([JSON.stringify(params)], {type: 'data:text/json;charset=utf-8'});
+			var blob_data = new Blob([JSON.stringify(gui_map, null, 2)], {type: 'data:text/json;charset=utf-8'});
 			console.log(saveAs(blob_data, "saved_data.json"));
+			saveAs()
 			}
 
 			function onWindowResize() {
@@ -463,12 +478,25 @@
 				saoPass.params.saoBlurRadius = 5;
 				saoPass.enabled = true;
 			}
+			function log_data(){
+				const tmp_blob = new Blob([JSON.stringify(gui_map)], {type: 'data:text/json;charset=utf-8'});
+
+				console.log(JSON.stringify(tmp_blob.text()));
+			}
 
 			function create_gui(){
 	
+			// for (const [key, value] of Object.entries(gui_map["mat_attr_dicts"])) {
+			// 	gui_map["mat_attr_dicts"][key] = gui_map["mat_attr_dict"];
+
+			// }
 
 				// gui
 				const gui = new GUI();
+
+
+
+				
 				const back_folder = gui.addFolder("back");
 				back_folder.add( params, 'models' ).options( all_meshes ).onChange(dummy);
 				back_folder.add( params, 'mats' ).options( all_mats ).onChange(dummy);
