@@ -193,19 +193,18 @@
 				mats: "",
 				phone_color_mats: ""
 			};
-			let params_out = JSON.stringify(params);
-			console.log(params_out);
-			function export_data(export_object, export_name) {
-				var data_str = 'data:text/json;charset=utf-8,' + encodeURIComponent(export_object);
-				var export_node = document.createElement('a');
-				export_node.setAttribute('href', data_str);
-				export_node.setAttribute('download', export_name + '.json');
-				document.body.appendChild(export_node);
-				export_node.click();
-				export_node.remove();
-			};
-			var blob_data = new Blob([params_out], {type: 'data:text/json;charset=utf-8'});
-			// export_data(params_out, "iphone15_mat_attrs");
+			// let params_out = JSON.stringify(params);
+			// console.log(params_out);
+			// function export_data(export_object, export_name) {
+			// 	var data_str = 'data:text/json;charset=utf-8,' + encodeURIComponent(export_object);
+			// 	var export_node = document.createElement('a');
+			// 	export_node.setAttribute('href', data_str);
+			// 	export_node.setAttribute('download', export_name + '.json');
+			// 	document.body.appendChild(export_node);
+			// 	export_node.click();
+			// 	export_node.remove();
+			// };
+			// var blob_data = new Blob([params_out], {type: 'data:text/json;charset=utf-8'});
 			// console.log(saveAs(blob_data, "test.json"));
 			// init();
 			// animate();
@@ -354,10 +353,15 @@
 				create_gui();
 
 				window.addEventListener( 'resize', onWindowResize );
+				// window.addEventListener( 'resize', onim );
 
 			}
-
-
+			function save_data(){
+			// let params_out = JSON.stringify(params);
+			// console.log(params_out);
+			var blob_data = new Blob([JSON.stringify(params)], {type: 'data:text/json;charset=utf-8'});
+			console.log(saveAs(blob_data, "saved_data.json"));
+			}
 
 			function onWindowResize() {
 
