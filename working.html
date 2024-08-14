@@ -39,28 +39,22 @@
 			import { saveAs } from 'file-saver';
 			import {  gui_map } from './gui_defaults.js';
 			import Cookies from 'js-cookie';
+			// import { camera_zoom } from 'camera_utils.js';
 
-			/////////////////////////////////
-			// get material attribute data //
-			/////////////////////////////////
+			// Camera
+			let camera_pos, camera_rot, camera_target, camera_zoom
+			let cookie_cam_pos, cookie_cam_rot, cookie_cam_target, cookie_cam_zoom;
+			camera_pos = [.3, .3, -.3];
+			camera_rot =  [ -2.4, 0.615, 2.617 ];
+			camera_target =  [ 0, 0, 0 ];
+			camera_zoom = 1;
 
-			let mat_attrs,  cookie_mat_attrs;			
-			// Try to retrieve cookie dictionary
-			try {
-				 cookie_mat_attrs = JSON.parse(Cookies.get("material_attributes"));
-			}catch (error) {
-				console.log("Cookies have not been saved for material_attributes, they will not be loaded");
-			}
-			// If dictionary is valid use it, otherwise use the one from gui_defaults.js
-			if ( cookie_mat_attrs instanceof Object) {
-				mat_attrs =  cookie_mat_attrs;
-				console.log("Cookies have been saved for material_attributes, now loading")
+			// Material
+			let mat_attrs,  cookie_mat_attrs;
+			mat_attrs = gui_map;
 
-			}else{
-				mat_attrs = gui_map;
-			}
-
-			var camera, scene, renderer ;
+			
+			var camera, scene, renderer, controls ;
 			var geometry, material, mesh, all_models, gltf_meshes;
 
 			//ssao
@@ -100,7 +94,6 @@
 
 			const dummy_mat = new THREE.MeshPhysicalMaterial();
 
-			// eval('var test_attr;');
 			let screen_tab,
 				antenna_tab,
 				glass_tab,
@@ -151,8 +144,6 @@
 								"grey_matte" : dummy_mat,
 								}
 
-
-
 			const old_params = {
 				color: 0xffffff,
 				phone_color: 0x8abd82,
@@ -187,9 +178,107 @@
 				mats: "",
 				phone_color_mats: ""
 			};
-			camera, scene, renderer = setup_scene();
 
-			function loader_func(){
+			init_cookie_data();
+			init_scene();
+
+
+			init_loader();
+			init();
+			animate();
+
+			debug_camera();
+
+			function init() {
+
+				// Lights
+				hemi_light, dir_light = create_lights();
+
+				///// Debug Geom /////
+				// material = new THREE.MeshPhongMaterial();
+				// geometry = new THREE.BoxGeometry( 0.01, 0.01, 0.01 );
+				// mesh = new THREE.Mesh( geometry, material );
+				// scene.add( mesh );
+				//////////////////////
+
+				// controls
+				controls = new OrbitControls( camera, renderer.domElement );
+				controls.target.x = camera_target[0];
+				controls.target.y = camera_target[1];
+				controls.target.z = camera_target[2];
+				controls.update()
+				// post-processing
+				ssao_pass();
+				create_gui();
+
+				window.addEventListener( 'resize', onWindowResize );
+				window.addEventListener( 'beforeunload', window_refresh );
+
+			}
+
+			function window_refresh(){
+				save_data();
+			};
+
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				// renderer.setPixelRatio( window.devicePixelRatio );	
+			}
+			function dummy(){
+
+			}
+
+			function animate() {
+				requestAnimationFrame( animate );
+				renderer.render( scene, camera );
+				// controls.update();
+				render();
+			}
+
+			function render() {
+				composer.render();
+				}
+			
+			function init_cookie_data(){
+				////////////
+				// Camera //
+				////////////
+				try {
+					cookie_cam_pos = JSON.parse(Cookies.get("camera_position"));
+					cookie_cam_rot = JSON.parse(Cookies.get("camera_rotation"));
+					cookie_cam_target = JSON.parse(Cookies.get("camera_target"));
+					cookie_cam_zoom = JSON.parse(Cookies.get("camera_zoom"));
+					console.log("cookie_cam_target  ", cookie_cam_target)
+				}catch (error) {
+					console.log("Camera position has not been found, it will not be loaded");
+				}
+				if ( cookie_cam_pos instanceof Object) {
+					camera_pos =  cookie_cam_pos;
+					camera_rot =  cookie_cam_rot;
+					camera_target =  cookie_cam_target;
+					console.log("camera_target ", camera_target);
+
+					console.log("Camera position has been found, now loading");
+				}
+				//////////////
+				// Material //
+				//////////////
+				try {
+					cookie_mat_attrs = JSON.parse(Cookies.get("material_attributes"));
+				}catch (error) {
+					console.log("Material attributes have not been found, they will not be loaded");
+				}
+				// If dictionary is valid use it, otherwise use the one from gui_defaults.js
+				if ( cookie_mat_attrs instanceof Object) {
+					mat_attrs =  cookie_mat_attrs;
+					console.log("Material_attributes have been found, now loading");
+				}
+			}
+
+			function init_loader(){
 				const hdrEquirect = new RGBELoader()
 					.setPath( 'textures/equirectangular/' )
 					// .load( 'field.hdr', function () {
@@ -234,12 +323,8 @@
 											// 	back_mat.roughness = old_params.back_roughness;
 											// 	// back_mat.metalness = old_params.metalness;
 											// 	back_mat.ior = old_params.back_ior;
-											// 	back_mat.opacity = old_params.back_opacity;
-											// 	back_mat.specularIntensity = old_params.back_specularIntensity;
 											// 	back_mat.transmission = old_params.back_transmission;
 											// 	back_mat.thickness = old_params.back_thickness;
-											// 	back_mat.attenuationColor.set( old_params.back_attenuationColor);
-											// 	back_mat.attenuationDistance = old_params.back_attenuationDistance;
 
 
 											// }
@@ -257,10 +342,11 @@
 												tmp_mat.ior = mat_attrs["dir_tex_metal"].ior;
 												tmp_mat.transmission = mat_attrs["dir_tex_metal"].transmission;
 												tmp_mat.thickness = mat_attrs["dir_tex_metal"].thickness;
-												// THREE.GeometryUtils.tessellate( child, 3 )
-												const tessellateModifier = new TessellateModifier( 8, 6 );
 
-												// child = tessellateModifier.modify( child );
+											// 	back_mat.opacity = old_params.back_opacity;
+											// 	back_mat.specularIntensity = old_params.back_specularIntensity;
+											// 	back_mat.attenuationColor.set( old_params.back_attenuationColor);
+											// 	back_mat.attenuationDistance = old_params.back_attenuationDistance;
 
 
 											}
@@ -309,89 +395,21 @@
 
 					} );
 				}
-
-			function some_stupid_func(){
-				
-			}
-
-			loader_func();
-
-
-			init();
-			animate();
-
-
-			function init() {
-
-				// Lights
-				hemi_light, dir_light = create_lights();
-
-				///// Debug Geom /////
-				// material = new THREE.MeshPhongMaterial();
-				// geometry = new THREE.BoxGeometry( 0.01, 0.01, 0.01 );
-				// mesh = new THREE.Mesh( geometry, material );
-				// scene.add( mesh );
-				//////////////////////
-
-				// controls
-				const controls = new OrbitControls( camera, renderer.domElement );
-
-				// post-processing
-				ssao_pass();
-				create_gui();
-
-				window.addEventListener( 'resize', onWindowResize );
-				window.addEventListener( 'beforeunload', window_refresh );
-
-			}
-
-			function window_refresh(){
-				save_data();
-			};
-
-			function save_data(){
-			// let old_params_out = JSON.stringify(params);
-			// console.log(params_out);
-			var blob_data = new Blob([JSON.stringify( mat_attrs, null, 2)], {type: 'data:text/json;charset=utf-8'});
-			console.log(saveAs(blob_data, "saved_data.json"));
-
-			Cookies.remove("material_attributes");
-			Cookies.set("material_attributes", JSON.stringify( mat_attrs, null, 2), { expires: 365 });
-
-			}
-
-			function onWindowResize() {
-
-			camera.aspect = window.innerWidth / window.innerHeight;
-			camera.updateProjectionMatrix();
-
-			renderer.setSize( window.innerWidth, window.innerHeight );
-			// renderer.setPixelRatio( window.devicePixelRatio );	
-
-			}
-			function dummy(){
-
-			}
-
-			function animate() {
-
-				requestAnimationFrame( animate );
-				renderer.render( scene, camera );
-				render();
-
-			}
-			function render() {
-
-				composer.render();
-
-				}
 			
-			// helper funcs
-			function setup_scene() {
 
+
+			// helper funcs
+			function init_scene() {
 				// Camera
 				camera = new THREE.PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 0.001, 1000 );
-				camera.position.set(.3, .3, -.3);
+				camera.position.set(camera_pos[0], camera_pos[1], camera_pos[2]);
+				camera.rotation.set(camera_rot[0], camera_rot[1], camera_rot[2]);
+				console.log("INITIAL CAMERA TARGET POSITION ", camera_target[0], camera_target[1], camera_target[2]);
+				// camera.lookAt(camera_target[0], camera_target[1], camera_target[2]);
+				camera.lookAt(0, 0, 0);
+				camera.zoom = camera_zoom;
+				// camera.lookAt(),
+				camera.autoRotate = true;
 
 				// Renderer
 				renderer = new THREE.WebGLRenderer({antialias : true});
@@ -400,13 +418,12 @@
 				renderer.shadowMap.enabled = true;
 				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 				renderer.setClearColor(0xFEFEFE);
-
 				document.body.appendChild(renderer.domElement);
 
 				// Scene
 				scene = new THREE.Scene();
 
-				return camera, scene, renderer;
+				// return camera, scene, renderer;
 			}
 
 			function create_lights() {
@@ -465,15 +482,155 @@
 				}));
 
 			}
+			function get_camera_pos(){
+				// Position
+				const Tx = camera.position.x;
+				const Ty = camera.position.y;
+				const Tz = camera.position.z;
+
+				// Rotation
+				const Rx = camera.rotation.x;
+				const Ry = camera.rotation.y;
+				const Rz = camera.rotation.z;
+
+				// Target
+				const Ttx = controls.target.x;
+				const Tty = controls.target.y;
+				const Ttz = controls.target.z;
+
+				// Zoom
+				const Zm = camera.zoom;
+
+
+				// const tmp_pos = camera.position;
+				camera_pos = [Tx, Ty, Tz];
+				camera_rot = [Rx, Ry, Rz];
+				camera_target = [Ttx, Tty, Ttz];
+				camera_zoom = Zm;
+				// localStorage.setItem("camera.position.x", camera.position.x.toString())
+				// localStorage.setItem("camera.position.y", camera.position.y.toString())
+				// localStorage.setItem("camera.position.z", camera.position.z.toString())
+				// localStorage.setItem("camera.rotation.x", camera.rotation.x.toString())
+				// localStorage.setItem("camera.rotation.y", camera.rotation.y.toString())
+				// localStorage.setItem("camera.rotation.z", camera.rotation.z.toString())
+				// localStorage.setItem("camera.zoom", camera.zoom.toString())
+
+				
+			};
+
+			function save_data(){
+
+				get_camera_pos();
+				// var blob_data = new Blob([ JSON.stringify( camera_pos, null, 3), JSON.stringify( camera_target, null, 3), JSON.stringify( mat_attrs, null, 2),], {type: 'data:text/json;charset=utf-8'});
+				// console.log(saveAs(blob_data, "saved_data.json"));
+
+				// Camera //
+				// --pos
+				Cookies.remove("camera_position");
+				Cookies.set("camera_position", JSON.stringify( camera_pos, null, 2), { expires: 365 });
+				// --rot
+				Cookies.remove("camera_rotation");
+				Cookies.set("camera_rotation", JSON.stringify( camera_rot, null, 2), { expires: 365 });
+				// --target
+				Cookies.remove("camera_target");
+				Cookies.set("camera_target", JSON.stringify( camera_target, null, 2), { expires: 365 });
+
+				// --zoom
+				Cookies.remove("camera_zoom");
+				Cookies.set("camera_zoom", JSON.stringify( camera_zoom, null, 2), { expires: 365 });
+
+				// Material Attrs
+				Cookies.remove("material_attributes");
+				Cookies.set("material_attributes", JSON.stringify( mat_attrs, null, 2), { expires: 365 });
+
+			}
+			function debug_camera(){
+					get_camera_pos();
+					console.log("CAMERA POSITION ", camera_pos)
+					console.log("CAMERA ROTATION ", camera_rot)
+					console.log("CAMERA ZOOM ", camera_zoom)
+					console.log("CONTROLS TARGET ", camera_target)
+					
+				}
+
+			function reset_camera(){
+				const pos = [.3, .3, -.3];
+				const rot = [-2.4, 0.615, 2.617 ];
+				// camera_rot =  [ -2.4, 0.615, 2.617 ];
+				// camera_zoom = 1;
+
+				camera.position.set(pos[0], pos[1], pos[2]);
+				camera.rotation.set(0, 0, 0);
+				camera.zoom = 1
+				controls.target.x = 0;
+				controls.target.y = 0;
+				controls.target.z = 0;
+				controls.update();
+				location.reload();
+				// camera.rotation.set(camera_rot[0], camera_rot[1], camera_rot[2]);
+				// camera.zoom = camera_zoom;
+
+			}
+			function reset_focus(){
+				const pos = [.3, .3, -.3];
+				const rot = [-2.4, 0.615, 2.617 ];
+				// camera_rot =  [ -2.4, 0.615, 2.617 ];
+				// camera_zoom = 1;
+
+				// camera.position.set(pos[0], pos[1], pos[2]);
+				// camera.position.x = .3;
+				// camera.position.z = -.3;
+				// camera.position.z = 0;
+				// camera.rotation.x = -2.4;
+				// camera.rotation.y = 0.615;
+				// camera.rotation.z = 2.617;
+				// camera.zoom = 1
+				controls.target.x = 0;
+				controls.target.z = 0;
+				camera.lookAt(0,camera_pos.y,0)
+				// controls.target.y = camera_pos[1];
+				// controls.target.z = 0;
+				controls.update();
+				// camera.rotation.set(camera_rot[0], camera_rot[1], camera_rot[2]);
+				// camera.zoom = camera_zoom;
+
+			}
+
+			function dump_stats(){
+				get_camera_pos();
+				var blob_data = new Blob([ JSON.stringify( camera_pos, null, 3),
+										   JSON.stringify( camera_target, null, 3),
+										   JSON.stringify( mat_attrs, null, 2),],
+										   {type: 'data:text/json;charset=utf-8'});
+				console.log(saveAs(blob_data, "saved_data.json"));
+
+			}
+
 			function create_gui(){
 	
 				// gui
 				const gui = new GUI();
 
+				///////////////////////////////////////
+				//////////// debug button /////////////
+				///////////////////////////////////////
+				const buttons = {
+					"debug stats": debug_camera,
+					"reset camera": reset_camera,
+					"reset focus": reset_focus,
+					"dump stats": dump_stats,
+				};
+				gui.add( buttons, 'debug stats' );
+				gui.add( buttons, 'reset camera' );
+				gui.add( buttons, 'reset focus' );
+				gui.add( buttons, 'dump stats' );
+				///////////////////////////////////////
+
+
 				const back_folde = gui.addFolder("back");
-				back_folde.add( old_params, 'models' ).options( all_meshes ).onChange(dummy);
-				back_folde.add( old_params, 'mats' ).options( all_mats ).onChange(dummy);
-				back_folde.add( old_params, 'phone_color_mats' ).options( phone_color_mats ).onChange(dummy);
+				gui.add( old_params, 'models' ).options( all_meshes ).onChange(dummy);
+				gui.add( old_params, 'mats' ).options( all_mats ).onChange(dummy);
+				gui.add( old_params, 'phone_color_mats' ).options( phone_color_mats ).onChange(dummy);
 
 				///////////////////////////////////////////////////////////////////////////////////
 				///////////// Loop through all dictionary entries and create gui //////////////////
