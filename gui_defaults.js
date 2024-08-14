@@ -1,6 +1,5 @@
-export let gui_map =
+export var gui_map =
 {
-    "mat_attr_dicts": {
       "screen": {
         "color": 16777215,
         "metalness": 0,
@@ -8,6 +7,14 @@ export let gui_map =
         "ior": 1.5,
         "thickness": 0.01,
         "transmission": 0
+      },
+      "back": {
+        "color": 12605562,
+        "metalness": 0,
+        "roughness": 0.32,
+        "ior": 2,
+        "thickness": 0,
+        "transmission": 1
       },
       "antenna": {
         "color": 16777215,
@@ -58,7 +65,7 @@ export let gui_map =
         "transmission": 0
       },
       "dir_tex_metal": {
-        "color": 16777215,
+        "color": 12605562,
         "metalness": 0,
         "roughness": 0.5,
         "ior": 1.5,
@@ -81,8 +88,8 @@ export let gui_map =
         "thickness": 0.01,
         "transmission": 0
       }
-    }
   };
 
 
 export const myArray = [1, 2, 3, 4, 5];
+

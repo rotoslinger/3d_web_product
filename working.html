@@ -23,6 +23,8 @@
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 			import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+			import { TessellateModifier } from 'three/addons/modifiers/TessellateModifier.js';
+
 
 			// Post Processing
 			import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -33,10 +35,30 @@
 			// Gui
 			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
-			// File system reading writing, etc
-			import * as fs from 'fs';
+			// Save/load files/cookies
 			import { saveAs } from 'file-saver';
-			import { gui_map } from './vars.js';
+			import {  gui_map } from './gui_defaults.js';
+			import Cookies from 'js-cookie';
+
+			/////////////////////////////////
+			// get material attribute data //
+			/////////////////////////////////
+
+			let mat_attrs,  cookie_mat_attrs;			
+			// Try to retrieve cookie dictionary
+			try {
+				 cookie_mat_attrs = JSON.parse(Cookies.get("material_attributes"));
+			}catch (error) {
+				console.log("Cookies have not been saved for material_attributes, they will not be loaded");
+			}
+			// If dictionary is valid use it, otherwise use the one from gui_defaults.js
+			if ( cookie_mat_attrs instanceof Object) {
+				mat_attrs =  cookie_mat_attrs;
+				console.log("Cookies have been saved for material_attributes, now loading")
+
+			}else{
+				mat_attrs = gui_map;
+			}
 
 			var camera, scene, renderer ;
 			var geometry, material, mesh, all_models, gltf_meshes;
@@ -90,6 +112,19 @@
 				metal_tab,
 				grey_matte_tab
 
+			let gui_tabs= {
+							"screen" : screen_tab,
+							"antenna" : antenna_tab,
+							"glass" : glass_tab,
+							"lens" : lens_tab,
+							"shiny_black" : shiny_black_tab,
+							"tex_metal" : tex_metal_tab,
+							"flash_cover" : flash_cover_tab,
+							"dir_tex_metal" : dir_tex_metal_tab,
+							"metal" : metal_tab,
+							"grey_matte" : grey_matte_tab,
+							}
+
 			let mesh_names =[
 							"screen",
 							"antenna",
@@ -118,50 +153,7 @@
 
 
 
-			// let gui_map = {
-			// 	mat_attr_dicts :{
-			// 					"screen" : {},
-			// 					"antenna" : {},
-			// 					"glass" : {},
-			// 					"lens" : {},
-			// 					"shiny_black" : {},
-			// 					"tex_metal" : {},
-			// 					"flash_cover" : {},
-			// 					"dir_tex_metal" : {},
-			// 					"metal" : {},
-			// 					"grey_matte" : {}
-			// 					},
-			// 	mat_attr_dict :{
-			// 					color: 0xffffff,
-			// 					metalness: 0,
-			// 					roughness: .5,
-			// 					ior: 1.5,
-			// 					thickness: 0.01,
-			// 					transmission: 0,
-			// 					}
-			// };
-
-
-			// gui_map["mat_attr_dicts"]["screen"] = gui_map["mat_attr_dict"];
-			// for (const [key, value] of Object.entries(gui_map["mat_attr_dicts"])) {
-			// 	gui_map["mat_attr_dicts"][key] = gui_map["mat_attr_dict"];
-
-			// }
-
-			// "screen_mat",
-			// "back", 
-			// "antenna",
-			// "glass",
-			// "lens",
-			// "shiny_black",
-			// "tex_metal",
-			// "flash_cover",
-			// "dir_tex_metal",
-			// "metal",
-			// "grey_matte"
-
-
-			const params = {
+			const old_params = {
 				color: 0xffffff,
 				phone_color: 0x8abd82,
 
@@ -183,7 +175,6 @@
 
 				back_transmission: 1,
 				back_opacity: 1,
-				// metalness: 0,
 				back_roughness: 0.32,
 				back_ior: 2,
 				back_thickness: 0,
@@ -191,32 +182,11 @@
 				back_attenuationDistance: 0.155,
 				back_specularIntensity: 1,
 				back_specularColor: 0xffffff,
-				// envMapIntensity: 1,
-				// lightIntensity: 1,
-
-				// envMapIntensity: 1,
-				// lightIntensity: 1,
-				// exposure: 1,
 				child_types: "",
 				models: "",
 				mats: "",
 				phone_color_mats: ""
 			};
-			// let params_out = JSON.stringify(params);
-			// console.log(params_out);
-			// function export_data(export_object, export_name) {
-			// 	var data_str = 'data:text/json;charset=utf-8,' + encodeURIComponent(export_object);
-			// 	var export_node = document.createElement('a');
-			// 	export_node.setAttribute('href', data_str);
-			// 	export_node.setAttribute('download', export_name + '.json');
-			// 	document.body.appendChild(export_node);
-			// 	export_node.click();
-			// 	export_node.remove();
-			// };
-			// var blob_data = new Blob([params_out], {type: 'data:text/json;charset=utf-8'});
-			// console.log(saveAs(blob_data, "test.json"));
-			// init();
-			// animate();
 			camera, scene, renderer = setup_scene();
 
 			function loader_func(){
@@ -237,53 +207,62 @@
 									all_meshes.push(child.name);
 									if ( child.isMesh){
 										all_meshes.push(child.name);
-
-										// child.castShadow = true;
-										// child.receiveShadow = true;
+										// Thinking about adding these back in, would like to try again, but this was causing some issues...
+										/*
+										child.castShadow = true;
+										child.receiveShadow = true;
+										*/
 										all_mats.push(child.material.type)
 
 										if (child.material.isMeshPhysicalMaterial) {
 											// I am setting transmission to .01 in blender before my gltf export to force it to export pbr
 											// Set it back to 0 here. I can turn it on per material where it makes sense 
 											child.material.transmission = 0;
-											if (phone_color_mat_names.includes(child.name)){
-												phone_color_mats.push(child.material);
-												child.material.color.set( params.phone_color);
+											// if (phone_color_mat_names.includes(child.name)){
+											// 	phone_color_mats.push(child.material);
+											// 	child.material.color.set( old_params.phone_color);
 
-											}
-											if (dir_metal_mat_names.includes(child.name)){
-												dir_metal_mats.push(child.material);
-												//metallic, roughness
+											// }
+											// if (dir_metal_mat_names.includes(child.name)){
+											// 	dir_metal_mats.push(child.material);
+											// 	//metallic, roughness
 
-											}
+											// }
 
-											if (child.name.includes("back")){
-												back_mat = child.material
-												back_mat.roughness = params.back_roughness;
-												// back_mat.metalness = params.metalness;
-												back_mat.ior = params.back_ior;
-												back_mat.opacity = params.back_opacity;
-												back_mat.specularIntensity = params.back_specularIntensity;
-												back_mat.transmission = params.back_transmission;
-												back_mat.thickness = params.back_thickness;
-												back_mat.attenuationColor.set( params.back_attenuationColor);
-												back_mat.attenuationDistance = params.back_attenuationDistance;
+											// if (child.name.includes("back")){
+											// 	back_mat = child.material
+											// 	back_mat.roughness = old_params.back_roughness;
+											// 	// back_mat.metalness = old_params.metalness;
+											// 	back_mat.ior = old_params.back_ior;
+											// 	back_mat.opacity = old_params.back_opacity;
+											// 	back_mat.specularIntensity = old_params.back_specularIntensity;
+											// 	back_mat.transmission = old_params.back_transmission;
+											// 	back_mat.thickness = old_params.back_thickness;
+											// 	back_mat.attenuationColor.set( old_params.back_attenuationColor);
+											// 	back_mat.attenuationDistance = old_params.back_attenuationDistance;
 
-												// params.roughness = back_mat.material.roughness;
-												// params.metalness = back_mat.material.metalness;
 
-												// params.ior = back_mat.material.ior;
-												// params.specularIntensity = back_mat.material.specularIntensity;
-
-												// params.transmission = back_mat.material.transmission;
-												// params.thickness = back_mat.material.thickness;
-												// params.attenuationColor = color.copy( back_mat.material.attenuationColor ).getHex();
-												// params.attenuationDistance = back_mat.material.attenuationDistance;
-
-											}
+											// }
 											if (child.name.includes("metal")){
 											}
 											if (child.name.includes("antenna")){
+											}
+											if (child.name.includes("dir_tex_metal")){
+												console.log("dir_tex_metal")
+												const tmp_mat = child.material; 
+												mesh_mat_dict["dir_tex_metal"] =  tmp_mat;
+												tmp_mat.color.setHex(mat_attrs["dir_tex_metal"].color);
+												tmp_mat.roughness = mat_attrs["dir_tex_metal"].roughness;
+												tmp_mat.metalness = mat_attrs["dir_tex_metal"].metalness;
+												tmp_mat.ior = mat_attrs["dir_tex_metal"].ior;
+												tmp_mat.transmission = mat_attrs["dir_tex_metal"].transmission;
+												tmp_mat.thickness = mat_attrs["dir_tex_metal"].thickness;
+												// THREE.GeometryUtils.tessellate( child, 3 )
+												const tessellateModifier = new TessellateModifier( 8, 6 );
+
+												// child = tessellateModifier.modify( child );
+
+
 											}
 											if (child.name.includes("glass")){
 											}
@@ -371,11 +350,14 @@
 			};
 
 			function save_data(){
-			// let params_out = JSON.stringify(params);
+			// let old_params_out = JSON.stringify(params);
 			// console.log(params_out);
-			var blob_data = new Blob([JSON.stringify(gui_map, null, 2)], {type: 'data:text/json;charset=utf-8'});
+			var blob_data = new Blob([JSON.stringify( mat_attrs, null, 2)], {type: 'data:text/json;charset=utf-8'});
 			console.log(saveAs(blob_data, "saved_data.json"));
-			saveAs()
+
+			Cookies.remove("material_attributes");
+			Cookies.set("material_attributes", JSON.stringify( mat_attrs, null, 2), { expires: 365 });
+
 			}
 
 			function onWindowResize() {
@@ -394,13 +376,7 @@
 			function animate() {
 
 				requestAnimationFrame( animate );
-
-				// rotational debug:
-				// all_models.rotation.y += 0.004;
-				// });
 				renderer.render( scene, camera );
-
-
 				render();
 
 			}
@@ -479,69 +455,142 @@
 				saoPass.enabled = true;
 			}
 			function log_data(){
-				const tmp_blob = new Blob([JSON.stringify(gui_map)], {type: 'data:text/json;charset=utf-8'});
-
+				const tmp_blob = new Blob([JSON.stringify( mat_attrs)], {type: 'data:text/json;charset=utf-8'});
 				console.log(JSON.stringify(tmp_blob.text()));
 			}
 
+			function inspect_methods(object_to_inspect){
+				console.log(Object.getOwnPropertyNames(object_to_inspect).filter(function (p) {
+					return typeof object_to_inspect[p] === 'function';
+				}));
+
+			}
 			function create_gui(){
 	
-			// for (const [key, value] of Object.entries(gui_map["mat_attr_dicts"])) {
-			// 	gui_map["mat_attr_dicts"][key] = gui_map["mat_attr_dict"];
-
-			// }
-
 				// gui
 				const gui = new GUI();
 
+				const back_folde = gui.addFolder("back");
+				back_folde.add( old_params, 'models' ).options( all_meshes ).onChange(dummy);
+				back_folde.add( old_params, 'mats' ).options( all_mats ).onChange(dummy);
+				back_folde.add( old_params, 'phone_color_mats' ).options( phone_color_mats ).onChange(dummy);
+
+				///////////////////////////////////////////////////////////////////////////////////
+				///////////// Loop through all dictionary entries and create gui //////////////////
+				///////////////////////////////////////////////////////////////////////////////////
+
+				for (const [key, value] of Object.entries( mat_attrs)) {
+
+					// Not necessary but makes things more readable
+					let folder = gui_tabs;
+					let material = mesh_mat_dict;
+					let params =  mat_attrs;
+
+					// Folder
+					folder[key] = gui.addFolder(key);
+
+					// Color
+					folder[key].addColor(  params[key], 'color' )
+						.onChange(function () 
+						{
+							material[key].color.set( params[key].color );
+							render();
+						} );
+						
+					// "metalness": 0,
+					folder[key].add( params[key], 'metalness', 0, 1, 0.01 )
+					.onChange( function () {
+						material[key].metalness = params[key].metalness;
+
+						render();
+					} );
+
+					// "roughness": 0.5,
+					folder[key].add( params[key], 'roughness', 0, 1, 0.01 )
+					.onChange( function () {
+						material[key].roughness = params[key].roughness;
+						render();
+					} );
+
+					// "ior": 1.5,
+					folder[key].add( params[key], 'ior', 0, 2, 0.01 )
+					.onChange( function () {
+						material[key].ior = params[key].ior;
+						render();
+					} );
+
+					// "thickness": 0.01,
+					folder[key].add( params[key], 'thickness', 0, 5, 0.01 )
+					.onChange( function () {
+						material[key].thickness = params[key].thickness;
+						render();
+					} );
+
+					// "transmission": 0
+					folder[key].add( params[key], 'transmission', 0, 1, 0.01 )
+					.onChange( function () {
+						material[key].transmission = params[key].transmission;
+						render();
+					} );
+
+					folder[key].close();
+
+					// Open a folder you would like the user to focus on by default
+					if (key.includes("dir_tex_metal")){
+						// folder[key].open();
+						inspect_methods(folder[key])
+						console.log("CLOSED " + folder[key]._closed)
+
+						// folder[key].onChange( function () {console.log("I AM CHANGING");
+						// } );
+					}
 
 
-				
-				const back_folder = gui.addFolder("back");
-				back_folder.add( params, 'models' ).options( all_meshes ).onChange(dummy);
-				back_folder.add( params, 'mats' ).options( all_mats ).onChange(dummy);
-				back_folder.add( params, 'phone_color_mats' ).options( phone_color_mats ).onChange(dummy);
+
+					
+				}
 
 
-				gui.addColor( params, 'phone_color' )
+
+				back_folde.addColor( old_params, 'phone_color' )
 					.onChange( function () {
 						phone_color_mats.forEach(mat => {
-							mat.color.set( params.phone_color );
+							mat.color.set( old_params.phone_color );
 							render();
 							});
 						});
 
 				
-				gui.add( params, 'back_transmission', 0, 1, 0.01 )
+				back_folde.add( old_params, 'back_transmission', 0, 1, 0.01 )
 					.onChange( function () {
 
-						back_mat.transmission = params.back_transmission;
+						back_mat.transmission = old_params.back_transmission;
 						render();
 
 					} );
 
 
-				gui.add( params, 'back_roughness', 0, 1, 0.01 )
+				back_folde.add( old_params, 'back_roughness', 0, 1, 0.01 )
 					.onChange( function () {
 
-						back_mat.roughness = params.back_roughness;
+						back_mat.roughness = old_params.back_roughness;
 						render();
 
 					} );
 
-				gui.add( params, 'back_ior', 1, 2, 0.01 )
+				back_folde.add( old_params, 'back_ior', 1, 2, 0.01 )
 					.onChange( function () {
 
-						back_mat.ior = params.back_ior;
+						back_mat.ior = old_params.back_ior;
 						render();
 
 					} );
 
-				gui.add( params, 'back_opacity', 0, 1, 0.01 )
+				back_folde.add( old_params, 'back_opacity', 0, 1, 0.01 )
 					.onChange( function () {
 
-						back_mat.opacity = params.back_opacity;
-						const transparent = params.back_opacity < 1;
+						back_mat.opacity = old_params.back_opacity;
+						const transparent = old_params.back_opacity < 1;
 
 						if ( transparent !== back_mat.transparent ) {
 
@@ -554,48 +603,48 @@
 
 					} );
 
-				gui.add( params, 'back_thickness', 0, 5, 0.01 )
+				back_folde.add( old_params, 'back_thickness', 0, 5, 0.01 )
 					.onChange( function () {
 
-						back_mat.thickness = params.back_thickness;
+						back_mat.thickness = old_params.back_thickness;
 						render();
 
 					} );
 
-				gui.addColor( params, 'back_attenuationColor' )
+				back_folde.addColor( old_params, 'back_attenuationColor' )
 					.name( 'attenuation color' )
 					.onChange( function () {
 
-						back_mat.attenuationColor.set( params.back_attenuationColor );
+						back_mat.attenuationColor.set( old_params.back_attenuationColor );
 						render();
 
 					} );
 
-				gui.add( params, 'back_attenuationDistance', 0, 10, 0.01 )
+				back_folde.add( old_params, 'back_attenuationDistance', 0, 10, 0.01 )
 					.onChange( function () {
 
-						back_mat.attenuationDistance = params.back_attenuationDistance;
+						back_mat.attenuationDistance = old_params.back_attenuationDistance;
 						render();
 
 					} );
 
-				gui.add( params, 'back_specularIntensity', 0, 1, 0.01 )
+				back_folde.add( old_params, 'back_specularIntensity', 0, 1, 0.01 )
 					.onChange( function () {
 
-						back_mat.specularIntensity = params.back_specularIntensity;
+						back_mat.specularIntensity = old_params.back_specularIntensity;
 						render();
 
 					} );
 
-				gui.addColor( params, 'back_specularColor' )
+				back_folde.addColor( old_params, 'back_specularColor' )
 					.onChange( function () {
 
-						back_mat.specularColor.set( params.back_specularColor );
+						back_mat.specularColor.set( old_params.back_specularColor );
 						render();
 
 					} );
 
-
+				back_folde.close();
 				gui.open();
 
 
