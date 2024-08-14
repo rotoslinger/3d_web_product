@@ -24,6 +24,30 @@ export var gui_map =
         "thickness": 0.01,
         "transmission": 0
       },
+      "dir_tex_metal": {
+        "color": 13225158,
+        "metalness": 1,
+        "roughness": 0.23,
+        "ior": 1.02,
+        "thickness": 0,
+        "transmission": 0
+      },
+      "shiny_metal": {
+        "color": 16777215,
+        "metalness": 0,
+        "roughness": 0.5,
+        "ior": 1.5,
+        "thickness": 0.01,
+        "transmission": 0
+      },
+      "reg_tex_metal": {
+        "color": 16777215,
+        "metalness": 0,
+        "roughness": 0.5,
+        "ior": 1.5,
+        "thickness": 0.01,
+        "transmission": 0
+      },
       "glass": {
         "color": 16777215,
         "metalness": 0,
@@ -48,14 +72,6 @@ export var gui_map =
         "thickness": 0.01,
         "transmission": 0
       },
-      "tex_metal": {
-        "color": 16777215,
-        "metalness": 0,
-        "roughness": 0.5,
-        "ior": 1.5,
-        "thickness": 0.01,
-        "transmission": 0
-      },
       "flash_cover": {
         "color": 16777215,
         "metalness": 0,
@@ -64,15 +80,7 @@ export var gui_map =
         "thickness": 0.01,
         "transmission": 0
       },
-      "dir_tex_metal": {
-        "color": 13225158,
-        "metalness": 1,
-        "roughness": 0.23,
-        "ior": 1.02,
-        "thickness": 0,
-        "transmission": 0
-      },
-        "metal": {
+      "grey_matte": {
         "color": 16777215,
         "metalness": 0,
         "roughness": 0.5,
@@ -80,7 +88,15 @@ export var gui_map =
         "thickness": 0.01,
         "transmission": 0
       },
-      "grey_matte": {
+      "black_matte": {
+        "color": 16777215,
+        "metalness": 0,
+        "roughness": 0.5,
+        "ior": 1.5,
+        "thickness": 0.01,
+        "transmission": 0
+      },
+      "blocker_matte": {
         "color": 16777215,
         "metalness": 0,
         "roughness": 0.5,

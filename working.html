@@ -137,11 +137,13 @@
 								"glass" : dummy_mat,
 								"lens" : dummy_mat,
 								"shiny_black" : dummy_mat,
-								"tex_metal" : dummy_mat,
+								"reg_tex_metal" : dummy_mat,
 								"flash_cover" : dummy_mat,
 								"dir_tex_metal" : dummy_mat,
-								"metal" : dummy_mat,
+								"shiny_metal" : dummy_mat,
 								"grey_matte" : dummy_mat,
+								"black_matte" : dummy_mat,
+								"blocker_matte" : dummy_mat,
 								}
 
 			const old_params = {
@@ -307,27 +309,26 @@
 											// I am setting transmission to .01 in blender before my gltf export to force it to export pbr
 											// Set it back to 0 here. I can turn it on per material where it makes sense 
 											child.material.transmission = 0;
-											// if (phone_color_mat_names.includes(child.name)){
-											// 	phone_color_mats.push(child.material);
-											// 	child.material.color.set( old_params.phone_color);
+											for (const [key, value] of Object.entries( mat_attrs)) {
+												if (child.name.includes(key)){
+													console.log(key)
+													const tmp_mat = child.material; 
+													mesh_mat_dict[key] =  tmp_mat;
+													tmp_mat.color.setHex(mat_attrs[key].color);
+													tmp_mat.roughness = mat_attrs[key].roughness;
+													tmp_mat.metalness = mat_attrs[key].metalness;
+													tmp_mat.ior = mat_attrs[key].ior;
+													tmp_mat.transmission = mat_attrs[key].transmission;
+													tmp_mat.thickness = mat_attrs[key].thickness;
+													// Might use these again in the future, but for now I don't think I need them
+													// tmp_mat.opacity = mat_attrs[key].opacity;
+													// tmp_mat.specularColor = mat_attrs[key].specularColor;
+													// tmp_mat.specularIntensity = mat_attrs[key].specularIntensity;
+													// tmp_mat.attenuationColor.set( mat_attrs[key].attenuationColor);
+													// tmp_mat.attenuationDistance = mat_attrs[key].attenuationDistance;
+												}
+											}
 
-											// }
-											// if (dir_metal_mat_names.includes(child.name)){
-											// 	dir_metal_mats.push(child.material);
-											// 	//metallic, roughness
-
-											// }
-
-											// if (child.name.includes("back")){
-											// 	back_mat = child.material
-											// 	back_mat.roughness = old_params.back_roughness;
-											// 	// back_mat.metalness = old_params.metalness;
-											// 	back_mat.ior = old_params.back_ior;
-											// 	back_mat.transmission = old_params.back_transmission;
-											// 	back_mat.thickness = old_params.back_thickness;
-
-
-											// }
 											if (child.name.includes("metal")){
 											}
 											if (child.name.includes("antenna")){
@@ -343,10 +344,12 @@
 												tmp_mat.transmission = mat_attrs["dir_tex_metal"].transmission;
 												tmp_mat.thickness = mat_attrs["dir_tex_metal"].thickness;
 
-											// 	back_mat.opacity = old_params.back_opacity;
-											// 	back_mat.specularIntensity = old_params.back_specularIntensity;
-											// 	back_mat.attenuationColor.set( old_params.back_attenuationColor);
-											// 	back_mat.attenuationDistance = old_params.back_attenuationDistance;
+												// Might use these again in the future, but for now I don't think I need them
+												// tmp_mat.opacity = mat_attrs["dir_tex_metal"].opacity;
+												// tmp_mat.specularColor = mat_attrs["dir_tex_metal"].specularColor;
+												// tmp_mat.specularIntensity = mat_attrs["dir_tex_metal"].specularIntensity;
+												// tmp_mat.attenuationColor.set( mat_attrs["dir_tex_metal"].attenuationColor);
+												// tmp_mat.attenuationDistance = mat_attrs["dir_tex_metal"].attenuationDistance;
 
 
 											}
