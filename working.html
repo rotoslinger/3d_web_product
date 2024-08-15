@@ -41,6 +41,10 @@
 			import Cookies from 'js-cookie';
 			// import { camera_zoom } from 'camera_utils.js';
 
+
+			// Cookie
+			let save_cookies = true;
+
 			// Camera
 			let camera_pos, camera_rot, camera_target, camera_zoom
 			let cookie_cam_pos, cookie_cam_rot, cookie_cam_target, cookie_cam_zoom;
@@ -95,54 +99,51 @@
 			const dummy_mat = new THREE.MeshPhysicalMaterial();
 
 			let screen_tab,
+				back_tab,
 				antenna_tab,
 				glass_tab,
 				lens_tab,
 				shiny_black_tab,
-				tex_metal_tab,
+				reg_tex_metal_tab,
 				flash_cover_tab,
 				dir_tex_metal_tab,
 				metal_tab,
-				grey_matte_tab
+				grey_matte_tab,
+				black_matte_tab,
+				backing_matte_tab,
+				blocker_matte_tab
 
 			let gui_tabs= {
 							"screen" : screen_tab,
+							"back" : back_tab,
 							"antenna" : antenna_tab,
+							"dir_tex_metal" : dir_tex_metal_tab,
+							"shiny_metal" : metal_tab,
+							"reg_tex_metal" : reg_tex_metal_tab,
 							"glass" : glass_tab,
 							"lens" : lens_tab,
 							"shiny_black" : shiny_black_tab,
-							"tex_metal" : tex_metal_tab,
 							"flash_cover" : flash_cover_tab,
-							"dir_tex_metal" : dir_tex_metal_tab,
-							"metal" : metal_tab,
 							"grey_matte" : grey_matte_tab,
+							"black_matte" : black_matte_tab,
+							"backing_matte" : backing_matte_tab,
+							"blocker_matte" : blocker_matte_tab,
 							}
-
-			let mesh_names =[
-							"screen",
-							"antenna",
-							"glass",
-							"lens",
-							"shiny_black",
-							"tex_metal",
-							"flash_cover",
-							"dir_tex_metal",
-							"metal",
-							"grey_matte"
-							]
 
 			let mesh_mat_dict = {
 								"screen" : dummy_mat,
+								"back" : dummy_mat,
 								"antenna" : dummy_mat,
+								"dir_tex_metal" : dummy_mat,
+								"shiny_metal" : dummy_mat,
+								"reg_tex_metal" : dummy_mat,
 								"glass" : dummy_mat,
 								"lens" : dummy_mat,
 								"shiny_black" : dummy_mat,
-								"reg_tex_metal" : dummy_mat,
 								"flash_cover" : dummy_mat,
-								"dir_tex_metal" : dummy_mat,
-								"shiny_metal" : dummy_mat,
 								"grey_matte" : dummy_mat,
 								"black_matte" : dummy_mat,
+								"backing_matte" : dummy_mat,
 								"blocker_matte" : dummy_mat,
 								}
 
@@ -523,30 +524,43 @@
 
 			function save_data(){
 
-				get_camera_pos();
-				// var blob_data = new Blob([ JSON.stringify( camera_pos, null, 3), JSON.stringify( camera_target, null, 3), JSON.stringify( mat_attrs, null, 2),], {type: 'data:text/json;charset=utf-8'});
-				// console.log(saveAs(blob_data, "saved_data.json"));
+				if (save_cookies){
+					get_camera_pos();
+					flush_cookies();
 
-				// Camera //
-				// --pos
+					// Camera //
+					// --pos
+					Cookies.set("camera_position", JSON.stringify( camera_pos, null, 2), { expires: 365 });
+					// --rot
+					Cookies.set("camera_rotation", JSON.stringify( camera_rot, null, 2), { expires: 365 });
+					// --target
+					Cookies.set("camera_target", JSON.stringify( camera_target, null, 2), { expires: 365 });
+
+					// --zoom
+					Cookies.set("camera_zoom", JSON.stringify( camera_zoom, null, 2), { expires: 365 });
+
+					// Material Attrs
+					Cookies.set("material_attributes", JSON.stringify( mat_attrs, null, 2), { expires: 365 });
+				}
+				
+			}
+
+			function flush_cookies(){
 				Cookies.remove("camera_position");
-				Cookies.set("camera_position", JSON.stringify( camera_pos, null, 2), { expires: 365 });
-				// --rot
 				Cookies.remove("camera_rotation");
-				Cookies.set("camera_rotation", JSON.stringify( camera_rot, null, 2), { expires: 365 });
-				// --target
 				Cookies.remove("camera_target");
-				Cookies.set("camera_target", JSON.stringify( camera_target, null, 2), { expires: 365 });
-
-				// --zoom
 				Cookies.remove("camera_zoom");
-				Cookies.set("camera_zoom", JSON.stringify( camera_zoom, null, 2), { expires: 365 });
-
-				// Material Attrs
 				Cookies.remove("material_attributes");
-				Cookies.set("material_attributes", JSON.stringify( mat_attrs, null, 2), { expires: 365 });
+			}
+
+			function reload_no_save(){
+				save_json();
+				flush_cookies();
+				save_cookies = false;
+				location.reload();
 
 			}
+
 			function debug_camera(){
 					get_camera_pos();
 					console.log("CAMERA POSITION ", camera_pos)
@@ -599,7 +613,7 @@
 
 			}
 
-			function dump_stats(){
+			function save_json(){
 				get_camera_pos();
 				var blob_data = new Blob([ JSON.stringify( camera_pos, null, 3),
 										   JSON.stringify( camera_target, null, 3),
@@ -621,12 +635,16 @@
 					"debug stats": debug_camera,
 					"reset camera": reset_camera,
 					"reset focus": reset_focus,
-					"dump stats": dump_stats,
+					"dump stats": save_json,
+					"flush cookies": reload_no_save,
+
+					
 				};
 				gui.add( buttons, 'debug stats' );
 				gui.add( buttons, 'reset camera' );
 				gui.add( buttons, 'reset focus' );
 				gui.add( buttons, 'dump stats' );
+				gui.add( buttons, 'flush cookies' );
 				///////////////////////////////////////
 
 
