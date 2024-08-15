@@ -285,7 +285,7 @@
 				const hdrEquirect = new RGBELoader()
 					.setPath( 'textures/equirectangular/' )
 					// .load( 'field.hdr', function () {
-					.load( 'indoor.hdr', function () {
+					.load( 'indoor_grey.hdr', function () {
 
 						hdrEquirect.mapping = THREE.EquirectangularReflectionMapping;
 
@@ -330,40 +330,40 @@
 												}
 											}
 
-											if (child.name.includes("metal")){
-											}
-											if (child.name.includes("antenna")){
-											}
-											if (child.name.includes("dir_tex_metal")){
-												console.log("dir_tex_metal")
-												const tmp_mat = child.material; 
-												mesh_mat_dict["dir_tex_metal"] =  tmp_mat;
-												tmp_mat.color.setHex(mat_attrs["dir_tex_metal"].color);
-												tmp_mat.roughness = mat_attrs["dir_tex_metal"].roughness;
-												tmp_mat.metalness = mat_attrs["dir_tex_metal"].metalness;
-												tmp_mat.ior = mat_attrs["dir_tex_metal"].ior;
-												tmp_mat.transmission = mat_attrs["dir_tex_metal"].transmission;
-												tmp_mat.thickness = mat_attrs["dir_tex_metal"].thickness;
+											// if (child.name.includes("metal")){
+											// }
+											// if (child.name.includes("antenna")){
+											// }
+											// if (child.name.includes("dir_tex_metal")){
+											// 	console.log("dir_tex_metal")
+											// 	const tmp_mat = child.material; 
+											// 	mesh_mat_dict["dir_tex_metal"] =  tmp_mat;
+											// 	tmp_mat.color.setHex(mat_attrs["dir_tex_metal"].color);
+											// 	tmp_mat.roughness = mat_attrs["dir_tex_metal"].roughness;
+											// 	tmp_mat.metalness = mat_attrs["dir_tex_metal"].metalness;
+											// 	tmp_mat.ior = mat_attrs["dir_tex_metal"].ior;
+											// 	tmp_mat.transmission = mat_attrs["dir_tex_metal"].transmission;
+											// 	tmp_mat.thickness = mat_attrs["dir_tex_metal"].thickness;
 
-												// Might use these again in the future, but for now I don't think I need them
-												// tmp_mat.opacity = mat_attrs["dir_tex_metal"].opacity;
-												// tmp_mat.specularColor = mat_attrs["dir_tex_metal"].specularColor;
-												// tmp_mat.specularIntensity = mat_attrs["dir_tex_metal"].specularIntensity;
-												// tmp_mat.attenuationColor.set( mat_attrs["dir_tex_metal"].attenuationColor);
-												// tmp_mat.attenuationDistance = mat_attrs["dir_tex_metal"].attenuationDistance;
+											// 	// Might use these again in the future, but for now I don't think I need them
+											// 	// tmp_mat.opacity = mat_attrs["dir_tex_metal"].opacity;
+											// 	// tmp_mat.specularColor = mat_attrs["dir_tex_metal"].specularColor;
+											// 	// tmp_mat.specularIntensity = mat_attrs["dir_tex_metal"].specularIntensity;
+											// 	// tmp_mat.attenuationColor.set( mat_attrs["dir_tex_metal"].attenuationColor);
+											// 	// tmp_mat.attenuationDistance = mat_attrs["dir_tex_metal"].attenuationDistance;
 
 
-											}
-											if (child.name.includes("glass")){
-											}
-											if (child.name.includes("lens")){
-											}
-											if (child.name.includes("shiny_black")){
-											}
-											if (child.name.includes("flash_cover")){
-											}
-											if (child.name.includes("grey_matte")){
-											}
+											// }
+											// if (child.name.includes("glass")){
+											// }
+											// if (child.name.includes("lens")){
+											// }
+											// if (child.name.includes("shiny_black")){
+											// }
+											// if (child.name.includes("flash_cover")){
+											// }
+											// if (child.name.includes("grey_matte")){
+											// }
 
 
 
