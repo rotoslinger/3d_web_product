@@ -1,12 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>three.js webgl - loaders - OBJ loader</title>
+		<title>Apple iPhone 15</title>
+		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="main.css">
-	</head>
 
+
+	</head>
 	<body>
+
+		<!-- <div id="info" class="parent">iPhone 15 -->
+		<img id="apple" src = "svg/apple.svg"  class="parent" alt=""/>
+			<div id="info" class="parent">iPhone 15
+
+			<div id="tag" class="child"> A virtual tour. </div>
+
+		</img>
+
 		<script type="importmap">
 			{
 				"imports": {
@@ -52,6 +63,11 @@
 			camera_rot =  [ -2.4, 0.615, 2.617 ];
 			camera_target =  [ 0, 0, 0 ];
 			camera_zoom = 1;
+			let scene_controls = {
+					"background_color": new THREE.Color(0xF5F5F7),
+					"light_intensity": 1,
+				}
+
 
 			// Material
 			let mat_attrs,  cookie_mat_attrs;
@@ -182,7 +198,7 @@
 				phone_color_mats: ""
 			};
 
-			init_cookie_data();
+			load_cookies();
 			init_scene();
 
 
@@ -245,7 +261,7 @@
 				composer.render();
 				}
 			
-			function init_cookie_data(){
+			function load_cookies(){
 				////////////
 				// Camera //
 				////////////
@@ -279,6 +295,29 @@
 					mat_attrs =  cookie_mat_attrs;
 					console.log("Material_attributes have been found, now loading");
 				}
+				//////////////
+				// scene_controls //
+				//////////////
+
+				let cookie_scene_controls;
+				try {
+					cookie_scene_controls = JSON.parse(Cookies.get("scene_controls"));
+				}catch (error) {
+					console.log("Scene Controls have not been found, they will not be loaded");
+				}
+				// If dictionary is valid use it, otherwise use the one from gui_defaults.js
+				if ( cookie_scene_controls instanceof Object) {
+					scene_controls =  cookie_scene_controls;
+					console.log("Scene Controls have been found, now loading");
+				}
+				// let scene_controls = {
+				// 	"background_color": new THREE.Color(0xF5F5F7),
+				// 	"light_intensity": 1,
+				// }
+
+
+
+
 			}
 
 			function init_loader(){
@@ -389,9 +428,11 @@
 								scene.add( gltf.scene );
 
 								scene.environment = hdrEquirect;
-								scene.background = hdrEquirect;
-								scene.environmentIntensity = 1;
+								// scene.background = hdrEquirect;
+								scene.environmentIntensity = scene_controls.light_intensity;
 								scene.backgroundBlurriness = 1;
+								renderer.setClearColor(scene_controls.background_color);
+
 
 
 							} );
@@ -423,6 +464,9 @@
 				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 				renderer.setClearColor(0xFEFEFE);
 				document.body.appendChild(renderer.domElement);
+				// accommodate CSS table
+				renderer.domElement.style.position = 'absolute';
+				renderer.domElement.style.top = 1;
 
 				// Scene
 				scene = new THREE.Scene();
@@ -528,6 +572,10 @@
 					get_camera_pos();
 					flush_cookies();
 
+
+					Cookies.set("scene_controls", JSON.stringify( scene_controls, null, 2), { expires: 365 });
+
+					
 					// Camera //
 					// --pos
 					Cookies.set("camera_position", JSON.stringify( camera_pos, null, 2), { expires: 365 });
@@ -546,6 +594,7 @@
 			}
 
 			function flush_cookies(){
+				Cookies.remove("scene_controls");
 				Cookies.remove("camera_position");
 				Cookies.remove("camera_rotation");
 				Cookies.remove("camera_target");
@@ -622,6 +671,17 @@
 				console.log(saveAs(blob_data, "saved_data.json"));
 
 			}
+			function set_light_intensity(intensity = 1){
+				scene.environmentIntensity = intensity;
+
+			}
+			function set_background(intensity = 1){
+				renderer.setClearColor(0xC9C9C9);
+
+			}
+
+
+
 
 			function create_gui(){
 	
@@ -640,12 +700,31 @@
 
 					
 				};
+
+
 				gui.add( buttons, 'debug stats' );
 				gui.add( buttons, 'reset camera' );
 				gui.add( buttons, 'reset focus' );
 				gui.add( buttons, 'dump stats' );
 				gui.add( buttons, 'flush cookies' );
 				///////////////////////////////////////
+
+
+
+
+
+
+				gui.add( scene_controls, 'light_intensity', 0, 5, .01 )
+					.onChange( function () {
+						scene.environmentIntensity = scene_controls.light_intensity;
+						render();
+					} );
+
+				gui.addColor( scene_controls, 'background_color' )
+					.onChange( function () {
+						renderer.setClearColor(scene_controls.background_color);
+						render();
+					});
 
 
 				const back_folde = gui.addFolder("back");
