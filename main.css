@@ -1,10 +1,9 @@
 body {
 	margin: 0;
-  	margin: 0;
 
 	background-color: #000;
 	color: #000000;
-  font-family: SF Pro Text, SF Pro Icons, Helvetica Neue, Helvetica, Arial, sans-serif;
+    font-family: SF Pro Text, SF Pro Icons, Helvetica Neue, Helvetica, Arial, sans-serif;
 	font-size: 13px;
 	line-height: 24px;
 	overscroll-behavior: none;
@@ -37,10 +36,10 @@ a:hover {
 	text-decoration: underline;
 }
 
-button {
+/* button {
 	cursor: pointer;
 	text-transform: uppercase;
-}
+} */
 
 
 
@@ -67,6 +66,10 @@ button {
 	z-index: 1; /* TODO Solve this in HTML */
   font-size: 72px;
 	line-height: 54px;
+	/* color: #ffffffe7; */
+	filter: invert(100%) opacity(85%);
+	color: #000000;
+
   /* border: 3px solid #73AD21; */
   /* background-color: #ffffff46; */
   /* backdrop-filter: blur; */
@@ -93,12 +96,13 @@ button {
 	user-select: none;
 	pointer-events: none;
 	z-index: 1; /* TODO Solve this in HTML */
-  font-size: 72px;
+    font-size: 72px;
 	line-height: 1px;
   /* border: 3px solid #73AD21; */
   /* background-color: #ffffff46; */
   /* backdrop-filter: blur; */
-
+  	color: #ffffff7a;
+	  filter: invert(100%) opacity(85%);
 
 }
 
@@ -108,7 +112,7 @@ button {
   /* padding-right: 100; */
   /* right: ; */
   /* width: 60%; */
-  height: 10px;
+   height: 10px;
 	/* width: 100%; */
 	padding: 0px;
 	text-align: center;
@@ -121,17 +125,49 @@ button {
 	user-select: none;
 	pointer-events: none;
 	z-index: 1; /* TODO Solve this in HTML */
-  font-size: 45px;
-  /* border: 3px solid #73AD21; */
-  color: #646464be;
+	font-size: 45px;
+	/* border: 3px solid #73AD21; */
+	color: #646464be;
 
 
 }
 
-a, button, input, select {
+
+
+#hotkey1{
+	position: relative;
+  top: 40px;
+   height: 10px;
+	padding: 0px;
+	text-align: right;
+	box-sizing: border-box;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	pointer-events: none;
+	font-size: 25px;
+	color: #92929250;
+	/* border: 3px solid #73AD21; */
+
+}
+
+/* a, button, input, select {
 	pointer-events: auto;
-}
+} */
 
+
+#button1 {background-color: #04AA6D;
+
+
+
+} /* Green */
+#button2 {background-color: #008CBA;} /* Blue */
+#button3 {background-color: #f44336;} /* Red */
+#button4 {background-color: #e7e7e7; color: black;} /* Gray */
+#button5 {background-color: #555555;} /* Black */
+
+  
 .lil-gui {
 	z-index: 2 !important; /* TODO Solve this in HTML */
 }
@@ -162,7 +198,7 @@ a, button, input, select {
 	background: rgba(0,0,0,0.7);
 }
 
-	#overlay button {
+	/* #overlay button {
 		background: transparent;
 		border: 0;
 		border: 1px solid rgb(255, 255, 255);
@@ -171,7 +207,7 @@ a, button, input, select {
 		padding: 12px 18px;
 		text-transform: uppercase;
 		cursor: pointer;
-	}
+	} */
 
 #notSupported {
 	width: 50%;
