@@ -75,7 +75,26 @@ a:hover {
   /* backdrop-filter: blur; */
 }
 
+/* #colorpicker {border-radius: 50%;
+	color: #a04646;
 
+} */
+#colorpicker{
+	min-width: 60px;
+	max-width:50%;
+	text-decoration: none;
+	display: inline-block;
+	outline: none;
+	cursor: pointer;
+	border-style: none;
+	color: #9b2121;
+	/* background-color: #3498db; */
+	border-radius: 100%;
+	overflow: none;
+	text-align: center;
+	padding:0;
+  }
+  
 #apple {
 	position: absolute;
 	/* top: auto; */
