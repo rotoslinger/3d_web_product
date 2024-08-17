@@ -1,19 +1,990 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link type="text/css" rel="stylesheet" href="main.css">
+	<head>
+		<title>Apple iPhone 15</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
 
-    <title>Boilerplate</title>
-    <style>
-        body {
-            margin: 0;
-        }
-    </style>
-</head>
-<body>
-    <script src="/index.js" type="module"></script>
-</body>
+
+	</head>
+	<body>
+
+		<!-- <div id="info" class="parent">iPhone 15 -->
+		<img id="apple" src = "svg/apple.svg"  class="parent" alt=""/>
+			<div id="info" class="parent">iPhone 15
+
+			<div id="tag" class="child"> Color. </div>
+			<!-- <input type="color" id="colorpicker" value="#9b2121"> -->
+
+
+				<!-- <input type="color" id="head" name="head" value="#e66465" />
+				<label for="head">Head</label>
+			  </div> -->
+			  
+			<!-- <div id="hotkey1" class="parent" style="white-space: pre-wrap;"> Press v to change view.&#10;1-9 to change colors.</div> -->
+			<!-- <button id="button1" type="button" class="child"></button>
+			<button id="button2" type="button" class="child"></button>
+			<button id="button3" type="button" class="child"></button>
+			<button id="button4" type="button" class="child"></button>
+			<button id="button5" type="button" class="child"></button>
+			<button id="button6" type="button" class="child"></button>
+			<button id="button7" type="button" class="child"></button>
+			<button id="button8" type="button" class="child"></button> -->
+			
+			<!-- <button class="button button5"></button> -->
+
+
+		</img>
+
+	 
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three';
+
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+			import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+			import { TessellateModifier } from 'three/addons/modifiers/TessellateModifier.js';
+
+
+			// Post Processing
+			import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+			import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+			import { SAOPass } from 'three/addons/postprocessing/SAOPass.js';
+			import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+			
+			// Gui
+			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+
+			// Save/load files/cookies
+			import { saveAs } from 'file-saver';
+			import {  gui_map } from '/gui_defaults.js';
+			import Cookies from 'js-cookie';
+			// import { camera_zoom } from 'camera_utils.js';
+
+
+			// console.log(gui_map);
+			// Cookie
+			let save_cookies = true;
+
+
+			let gui_master = new GUI();
+			// Camera
+			let camera_pos, camera_rot, camera_target, camera_zoom
+			let cookie_cam_pos, cookie_cam_rot, cookie_cam_target, cookie_cam_zoom;
+			camera_pos = [.3, .3, -.3];
+			camera_rot =  [ -2.4, 0.615, 2.617 ];
+			camera_target =  [ 0, 0, 0 ];
+			camera_zoom = 1;
+			let scene_controls = {
+					"background_color": 0xbebecb,
+					"phone_color": 0xbebecb,
+					"phone_roughness": 1,
+					"phone_metalic": 1,
+					"light_intensity": 1,
+					"hide_gui": false,
+					// "override_phone_color":true,
+				}
+
+			let Blue = 0xf0f5f8;
+			let Pink = 0xfde3e4;
+			let Yellow = 0xfdf8e2;
+			let Green = 0xe7f2d9;
+			let Black = 0x4b4c4e;
+
+
+			// Material
+			let mat_attrs,  cookie_mat_attrs;
+			mat_attrs = gui_map;
+
+			
+			var camera, scene, renderer, controls ;
+			var geometry, material, mesh, all_models, gltf_meshes;
+
+			//ssao
+			let composer, renderPass, saoPass,container, stats, hemi_light, dir_light;
+				
+			let all_meshes = [];
+			let all_mats = [];
+
+			let phone_color_mat_names = [
+									"phone_back_cover", 
+									"phone_antenna",
+									"dir_tex_metal",
+									"reg_tex_metal",
+
+								  ];
+			let phone_color_mats = [];
+
+			let dir_metal_mat_names = [
+										"tex_metal",
+										"dir_tex_metal",
+									  ];
+			let dir_metal_mats = [];
+
+			const dummy_mat = new THREE.MeshPhysicalMaterial();
+			// Gui folders
+			let phone_screen__fldr,
+				phone_back_cover__fldr,
+				phone_antenna__fldr,
+				camera_glass__fldr,
+				camera_lens__fldr,
+				shiny_black__fldr,
+				reg_tex_metal__fldr,
+				flash_cover__fldr,
+				dir_tex_metal__fldr,
+				metal__fldr,
+				grey_matte__fldr,
+				black_matte__fldr,
+				camera_backing__fldr,
+				phone_back_metal__fldr
+			// 
+			// let phone_screen__mat,
+			// 	phone_back_cover__mat,
+			// 	phone_antenna__mat,
+			// 	camera_glass__mat,
+			// 	camera_lens__mat,
+			// 	shiny_black__mat,
+			// 	reg_tex_metal__mat,
+			// 	flash_cover__mat,
+			// 	dir_tex_metal__mat,
+			// 	metal__mat,
+			// 	grey_matte__mat,
+			// 	black_matte__mat,
+			// 	camera_backing__mat,
+			// 	phone_back_metal__mat
+
+			let gui__fldrs= {
+							"phone_screen" : phone_screen__fldr,
+							"phone_back_cover" : phone_back_cover__fldr,
+							"phone_antenna" : phone_antenna__fldr,
+							"dir_tex_metal" : dir_tex_metal__fldr,
+							"shiny_metal" : metal__fldr,
+							"reg_tex_metal" : reg_tex_metal__fldr,
+							"camera_glass" : camera_glass__fldr,
+							"camera_lens" : camera_lens__fldr,
+							"shiny_black" : shiny_black__fldr,
+							"flash_cover" : flash_cover__fldr,
+							"grey_matte" : grey_matte__fldr,
+							"black_matte" : black_matte__fldr,
+							"camera_backing" : camera_backing__fldr,
+							"phone_back_metal" : phone_back_metal__fldr,
+							}
+
+			let mesh_mat_dict = {
+								"phone_screen" : dummy_mat,
+								"phone_back_cover" : dummy_mat,
+								"phone_antenna" : dummy_mat,
+								"dir_tex_metal" : dummy_mat,
+								"shiny_metal" : dummy_mat,
+								"reg_tex_metal" : dummy_mat,
+								"camera_glass" : dummy_mat,
+								"camera_lens" : dummy_mat,
+								"shiny_black" : dummy_mat,
+								"flash_cover" : dummy_mat,
+								"grey_matte" : dummy_mat,
+								"black_matte" : dummy_mat,
+								"camera_backing" : dummy_mat,
+								"phone_back_metal" : dummy_mat,
+								}
+
+			const old_params = {
+				color: 0xffffff,
+				phone_color: 0x8abd82,
+
+				dir_metalness:1,
+				dir_roughness:.5,
+
+				metal_color: 0xc0c0c0,
+				metal_metalness:1,
+				metal_roughness:.5,
+
+
+				back_transm: 1,
+				back_roughness: 0,
+				back_ior: 1.5,
+				back_thickness: 0.01,
+
+				glass_color:0xc0c0c0,
+				glass_transm: 0,
+
+				back_transmission: 1,
+				back_opacity: 1,
+				back_roughness: 0.32,
+				back_ior: 2,
+				back_thickness: 0,
+				back_attenuationColor: 0x8abd82,
+				back_attenuationDistance: 0.155,
+				back_specularIntensity: 1,
+				back_specularColor: 0xffffff,
+				child_types: "",
+				models: "",
+				mats: "",
+				phone_color_mats: ""
+			};
+
+			load_cookies();
+			init_scene();
+
+
+			init_loader();
+			init();
+
+			let update_tick = true;
+
+			// update_color_materials();
+			animate();
+			// update_color_materials();
+			// renderer.render( scene, camera );
+			// render();
+			setTimeout(function(){update_tick = false}, 1000);
+
+			function init() {
+
+				// Lights
+				hemi_light, dir_light = create_lights();
+
+				///// Debug Geom /////
+				// material = new THREE.MeshPhongMaterial();
+				// geometry = new THREE.BoxGeometry( 0.01, 0.01, 0.01 );
+				// mesh = new THREE.Mesh( geometry, material );
+				// scene.add( mesh );
+				//////////////////////
+
+				// controls
+				controls = new OrbitControls( camera, renderer.domElement );
+				controls.target.x = camera_target[0];
+				controls.target.y = camera_target[1];
+				controls.target.z = camera_target[2];
+				controls.update()
+				// post-processing
+				ssao_pass();
+				create_gui();
+
+				window.addEventListener( 'resize', onWindowResize );
+				window.addEventListener( 'beforeunload', window_refresh );
+
+			}
+
+			function window_refresh(){
+				save_data();
+			};
+
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				// renderer.setPixelRatio( window.devicePixelRatio );	
+			}
+			function dummy(){
+
+			}
+
+			function animate() {
+				requestAnimationFrame( animate );
+				if (update_tick){
+					update_color_materials();
+					// update_tick = false;
+				}
+				renderer.render( scene, camera );
+				render();
+			}
+			
+			function render() {
+				composer.render();
+				}
+			
+			function load_cookies(){
+				////////////
+				// Camera //
+				////////////
+				try {
+					cookie_cam_pos = JSON.parse(Cookies.get("camera_position"));
+					cookie_cam_rot = JSON.parse(Cookies.get("camera_rotation"));
+					cookie_cam_target = JSON.parse(Cookies.get("camera_target"));
+					cookie_cam_zoom = JSON.parse(Cookies.get("camera_zoom"));
+				}catch (error) {
+					console.log("Camera position has not been found, it will not be loaded");
+				}
+				if ( cookie_cam_pos instanceof Object) {
+					camera_pos =  cookie_cam_pos;
+					camera_rot =  cookie_cam_rot;
+					camera_target =  cookie_cam_target;
+
+					console.log("Camera position has been found, now loading");
+				}
+				//////////////
+				// Material //
+				//////////////
+				try {
+					cookie_mat_attrs = JSON.parse(Cookies.get("material_attributes"));
+				}catch (error) {
+					console.log(error);
+					console.log("THESE ARE THE COOKIES", Cookies);
+
+					console.log("Material attributes have not been found, they will not be loaded");
+				}
+				// If dictionary is valid use it, otherwise use the one from gui_defaults.js
+				if ( cookie_mat_attrs instanceof Object) {
+					mat_attrs =  cookie_mat_attrs;
+					console.log("Material_attributes have been found, now loading");
+				}
+
+				//////////////
+				// scene_controls //
+				//////////////
+
+				let cookie_scene_controls;
+				try {
+					cookie_scene_controls = JSON.parse(Cookies.get("scene_controls"));
+				}catch (error) {
+					console.log("Scene Controls have not been found, they will not be loaded");
+				}
+				// If dictionary is valid use it, otherwise use the one from gui_defaults.js
+				if ( cookie_scene_controls instanceof Object) {
+					scene_controls =  cookie_scene_controls;
+					console.log("Scene Controls have been found, now loading");
+				}
+				// let scene_controls = {
+				// 	"background_color": new THREE.Color(0xF5F5F7),
+				// 	"light_intensity": 1,
+				// }
+
+
+
+
+			}
+
+			function init_loader(){
+				const hdrEquirect = new RGBELoader()
+					.setPath( 'textures/equirectangular/' )
+					// .load( 'field.hdr', function () {
+					.load( 'indoor_grey.hdr', function () {
+
+						hdrEquirect.mapping = THREE.EquirectangularReflectionMapping;
+
+						new GLTFLoader()
+							.setPath( 'models/gltf/' )
+							.load( 'iphone.glb', function ( gltf ) {
+
+								gltf.scene.traverse( function ( child ) {
+									const color = new THREE.Color();
+
+									all_meshes.push(child.name);
+									if ( child.isMesh){
+										all_meshes.push(child.name);
+										// Thinking about adding these back in, would like to try again, but this was causing some issues...
+										
+										child.castShadow = true;
+										child.receiveShadow = true;
+										
+										all_mats.push(child.material.type)
+
+										if (child.material.isMeshPhysicalMaterial) {
+											// I am setting transmission to .01 in blender before my gltf export to force it to export pbr
+											// Set it back to 0 here. I can turn it on per material where it makes sense 
+											child.material.transmission = 0;
+											child.material.opacity = 1;
+											child.material.roughness = 1;
+
+											child.material.needsUpdate = true;
+
+											for (const [key, value] of Object.entries( mat_attrs)) {
+												if (child.name.includes(key)){
+													const tmp_mat = child.material; 
+													mesh_mat_dict[key] =  tmp_mat;
+													tmp_mat.color.setHex(mat_attrs[key].color);
+													tmp_mat.roughness = mat_attrs[key].roughness;
+													tmp_mat.metalness = mat_attrs[key].metalness;
+													tmp_mat.ior = mat_attrs[key].ior;
+													tmp_mat.transmission = mat_attrs[key].transmission;
+													tmp_mat.thickness = mat_attrs[key].thickness;
+
+
+
+													if (child.name.includes("camera_lens")){
+														tmp_mat.dispersion = 1;
+														tmp_mat.iridescence = 1;
+														tmp_mat.iridescenceIOR = 0;
+														tmp_mat.iridescenceThicknessRange = [0,1];
+														tmp_mat.iridescenceThicknessRange = [0,1];
+														tmp_mat.sheenColor.set(0xc88aff);
+														tmp_mat.sheen = 1;
+														tmp_mat.sheenRoughness = 1;
+														// bebecb
+														// "dispersion": 0,
+														// "iridescence": 0,
+														// "iridescenceIOR": 1.3,
+														// "iridescenceThicknessRange": [
+														// 	100,
+														// 	400
+														// ],
+													};
+													// tmp_mat.anisotropy = mat_attrs[key].anisotropy;
+													// tmp_mat.sheen = mat_attrs[key].sheen;
+													// tmp_mat.sheenColor = mat_attrs[key].sheenColor;
+													// tmp_mat.sheenRoughness = mat_attrs[key].sheenRoughness;
+													// Might use these again in the future, but for now I don't think I need them
+													// tmp_mat.opacity = mat_attrs[key].opacity;
+													// tmp_mat.specularColor = mat_attrs[key].specularColor;
+													// tmp_mat.specularIntensity = mat_attrs[key].specularIntensity;
+													// tmp_mat.attenuationColor.set( mat_attrs[key].attenuationColor);
+													// tmp_mat.attenuationDistance = mat_attrs[key].attenuationDistance;
+												}
+											}
+										}
+									} 
+								});
+	
+								init();
+								all_models = gltf.scene;
+								scene.add( gltf.scene );
+
+								scene.environment = hdrEquirect;
+								// scene.background = hdrEquirect;
+								scene.environmentIntensity = scene_controls.light_intensity;
+								scene.backgroundBlurriness = 1;
+								renderer.setClearColor(scene_controls.background_color);
+							} );
+						} );
+					}
+			
+
+
+			// helper funcs
+			function init_scene() {
+				// Camera
+				camera = new THREE.PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 0.001, 1000 );
+				camera.position.set(camera_pos[0], camera_pos[1], camera_pos[2]);
+				camera.rotation.set(camera_rot[0], camera_rot[1], camera_rot[2]);
+				// camera.lookAt(camera_target[0], camera_target[1], camera_target[2]);
+				camera.lookAt(0, 0, 0);
+				camera.zoom = camera_zoom;
+				// camera.lookAt(),
+				camera.autoRotate = true;
+
+				// Renderer
+				renderer = new THREE.WebGLRenderer({antialias : true});
+				renderer.setPixelRatio( window.devicePixelRatio );	
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				renderer.setClearColor(0xFEFEFE);
+				document.body.appendChild(renderer.domElement);
+				// accommodate CSS table
+				renderer.domElement.style.position = 'absolute';
+				renderer.domElement.style.top = 1;
+
+				// Scene
+				scene = new THREE.Scene();
+
+				// return camera, scene, renderer;
+			}
+
+			function create_lights() {
+				// Lights
+				const hemi_light = new THREE.HemisphereLight( 0xffffff, 0xbbbbff, 1 );
+				scene.add( hemi_light );
+
+				const dir_light = new THREE.SpotLight( 0xffffff, .5 );
+				dir_light.position.set(1, 1, 1);
+				dir_light.castShadow = true;
+				dir_light.shadow.mapSize.set(512,512);
+				dir_light.shadow.intensity = 1;
+				const d = 10;
+
+				dir_light.shadow.camera.left = - d;
+				dir_light.shadow.camera.right = d;
+				dir_light.shadow.camera.top = d;
+				dir_light.shadow.camera.bottom = - d;
+				dir_light.shadow.camera.far = 2;
+				dir_light.shadow.camera.near = .01;
+
+				dir_light.shadow.normalBias = 0.001;
+				dir_light.shadow.bias = 0.0001;
+
+				// dir_light.shadow.intensity = 1;
+				dir_light.shadow.radius = .1;
+				// scene.add( new THREE.CameraHelper( dir_light.shadow.camera ) );
+				// scene.add( new THREE.CameraHelper( dir_light ) );
+
+				scene.add(dir_light);
+				return hemi_light, dir_light
+			}
+
+			function ssao_pass() {
+				composer = new EffectComposer( renderer );
+				renderPass = new RenderPass( scene, camera );
+				composer.addPass( renderPass );
+				saoPass = new SAOPass( scene, camera );
+				composer.addPass( saoPass );
+				const outputPass = new OutputPass();
+				composer.addPass( outputPass );
+
+				saoPass.params.saoIntensity = .1;
+				saoPass.params.saoScale = 70;
+				saoPass.params.saoKernelRadius = 100;
+				saoPass.params.saoBlurRadius = 5;
+				saoPass.enabled = true;
+			}
+			function log_data(){
+				const tmp_blob = new Blob([JSON.stringify( mat_attrs)], {type: 'data:text/json;charset=utf-8'});
+				console.log(JSON.stringify(tmp_blob.text()));
+			}
+
+			function inspect_methods(object_to_inspect){
+				console.log(Object.getOwnPropertyNames(object_to_inspect).filter(function (p) {
+					return typeof object_to_inspect[p] === 'function';
+				}));
+
+			}
+			function get_camera_pos(){
+				// Position
+				const Tx = camera.position.x;
+				const Ty = camera.position.y;
+				const Tz = camera.position.z;
+
+				// Rotation
+				const Rx = camera.rotation.x;
+				const Ry = camera.rotation.y;
+				const Rz = camera.rotation.z;
+
+				// Target
+				const Ttx = controls.target.x;
+				const Tty = controls.target.y;
+				const Ttz = controls.target.z;
+
+				// Zoom
+				const Zm = camera.zoom;
+
+
+				// const tmp_pos = camera.position;
+				camera_pos = [Tx, Ty, Tz];
+				camera_rot = [Rx, Ry, Rz];
+				camera_target = [Ttx, Tty, Ttz];
+				camera_zoom = Zm;
+				// localStorage.setItem("camera.position.x", camera.position.x.toString())
+				// localStorage.setItem("camera.position.y", camera.position.y.toString())
+				// localStorage.setItem("camera.position.z", camera.position.z.toString())
+				// localStorage.setItem("camera.rotation.x", camera.rotation.x.toString())
+				// localStorage.setItem("camera.rotation.y", camera.rotation.y.toString())
+				// localStorage.setItem("camera.rotation.z", camera.rotation.z.toString())
+				// localStorage.setItem("camera.zoom", camera.zoom.toString())
+
+				
+			};
+
+			function save_data(){
+
+				if (save_cookies){
+					get_camera_pos();
+					remove_cookies();
+
+
+					Cookies.set("scene_controls", JSON.stringify( scene_controls, null, 2), { expires: 365 });
+
+					
+					// Camera //
+					// --pos
+					Cookies.set("camera_position", JSON.stringify( camera_pos, null, 2), { expires: 365 });
+					// --rot
+					Cookies.set("camera_rotation", JSON.stringify( camera_rot, null, 2), { expires: 365 });
+					// --target
+					Cookies.set("camera_target", JSON.stringify( camera_target, null, 2), { expires: 365 });
+
+					// --zoom
+					Cookies.set("camera_zoom", JSON.stringify( camera_zoom, null, 2), { expires: 365 });
+
+					// Material Attrs
+					Cookies.set("material_attributes", JSON.stringify( mat_attrs, null, 2), { expires: 365 });
+				}
+				
+			}
+
+			function remove_cookies(){
+				Cookies.remove("scene_controls");
+				Cookies.remove("camera_position");
+				Cookies.remove("camera_rotation");
+				Cookies.remove("camera_target");
+				Cookies.remove("camera_zoom");
+				Cookies.remove("material_attributes");
+			}
+
+			function reload_no_save(){
+				save_json();
+				remove_cookies();
+				save_cookies = false;
+				location.reload();
+
+			}
+
+			function debug_camera(){
+					get_camera_pos();
+					console.log("CAMERA POSITION ", camera_pos)
+					console.log("CAMERA ROTATION ", camera_rot)
+					console.log("CAMERA ZOOM ", camera_zoom)
+					console.log("CONTROLS TARGET ", camera_target)
+					
+				}
+
+			function reset_camera(){
+				const pos = [.3, .3, -.3];
+				const rot = [-2.4, 0.615, 2.617 ];
+				// camera_rot =  [ -2.4, 0.615, 2.617 ];
+				// camera_zoom = 1;
+
+				camera.position.set(pos[0], pos[1], pos[2]);
+				camera.rotation.set(0, 0, 0);
+				camera.zoom = 1
+				controls.target.x = 0;
+				controls.target.y = 0;
+				controls.target.z = 0;
+				controls.update();
+				location.reload();
+				// camera.rotation.set(camera_rot[0], camera_rot[1], camera_rot[2]);
+				// camera.zoom = camera_zoom;
+
+			}
+			function reset_focus(){
+				const pos = [.3, .3, -.3];
+				const rot = [-2.4, 0.615, 2.617 ];
+				// camera_rot =  [ -2.4, 0.615, 2.617 ];
+				// camera_zoom = 1;
+
+				// camera.position.set(pos[0], pos[1], pos[2]);
+				// camera.position.x = .3;
+				// camera.position.z = -.3;
+				// camera.position.z = 0;
+				// camera.rotation.x = -2.4;
+				// camera.rotation.y = 0.615;
+				// camera.rotation.z = 2.617;
+				// camera.zoom = 1
+				controls.target.x = 0;
+				controls.target.z = 0;
+				camera.lookAt(0,camera_pos.y,0)
+				// controls.target.y = camera_pos[1];
+				// controls.target.z = 0;
+				controls.update();
+				// camera.rotation.set(camera_rot[0], camera_rot[1], camera_rot[2]);
+				// camera.zoom = camera_zoom;
+
+			}
+
+			function save_json(){
+				get_camera_pos();
+				var blob_data = new Blob([ JSON.stringify( camera_pos, null, 3),
+										   JSON.stringify( camera_target, null, 3),
+										   JSON.stringify( mat_attrs, null, 3),
+										   JSON.stringify( scene_controls, null, 3),
+										   JSON.stringify( mesh_mat_dict["phone_screen"], null, 3),
+										],
+										
+
+										   {type: 'data:text/json;charset=utf-8'});
+				console.log(saveAs(blob_data, "saved_data.json"));
+			}
+
+			function set_light_intensity(intensity = 1){
+				scene.environmentIntensity = intensity;
+			}
+			function set_background(intensity = 1){
+				renderer.setClearColor(0xC9C9C9);
+			}
+			function update_color_materials(color = new THREE.Color(0xc9ccc6)){
+				
+				const mat_names = [ "phone_antenna",
+									"dir_tex_metal",
+									"reg_tex_metal",
+									"phone_back_metal",
+									"grey_matte",
+									"shiny_metal",
+									"phone_back_cover",
+								]
+
+				let Blue = 0xf0f5f8;
+				let Pink = 0xfde3e4;
+				let Yellow = 0xfdf8e2;
+				let Green = 0xe7f2d9;
+				let Black = 0x4b4c4e;
+
+
+				for (const name in mat_names) {
+					mesh_mat_dict[mat_names[name]].color.set(scene_controls["phone_color"]);
+					if (name.includes("phone_back_metal"));
+						// mesh_mat_dict[mat_names[name]].color
+						// mesh_mat_dict[mat_names[name]].color
+						// mesh_mat_dict[mat_names[name]].needsUpdate();
+						}
+				gui_master.controllers[0].updateDisplay();
+				renderer.render( scene, camera );
+				render();
+
+
+			}
+
+
+			function create_gui(){
+				function do_something_func(){
+				}
+
+				const buttons = {
+					"debug stats": debug_camera,
+					"reset camera": reset_camera,
+					"reset focus": reset_focus,
+					"save json": save_json,
+					"flush cookies": reload_no_save,
+					"hide gui": function (){gui.show(false);},
+					"show gui": function (){gui.show()},
+					"do_something_func": do_something_func,
+				};
+
+				let gui = new GUI();
+
+				function hotkey_function(){
+					document.onkeyup = function(e) {
+					// alert(e.which);
+					if (e.which == 77) {
+						alert("M key was pressed");
+					} else if (e.which == 72) {
+						gui.hide();
+					} else if (e.which == 83) {
+						gui.show();
+					}
+					}
+				}
+				hotkey_function();
+
+
+				///////////////////////////////////////
+				//////////// debug button /////////////
+				///////////////////////////////////////
+
+				// gui.add( buttons, 'debug stats' );
+				gui.add( buttons, 'reset camera' );
+				gui.add( buttons, 'reset focus' );
+				gui.add( buttons, 'save json' );
+				gui.add( buttons, 'flush cookies' );
+				gui.add( buttons, 'hide gui' );
+
+				// const phone_color = new THREE.Color(0xc9ccc6);
+				// 0xc9ccc6
+				// 13225158
+				// phone_color
+				///////////////////////////////////////
+				gui.add( scene_controls, 'light_intensity', 0, 5, .01 )
+					.onChange( function () {
+						scene.environmentIntensity = scene_controls.light_intensity;
+						render();
+					} );
+
+				gui.addColor( scene_controls, 'background_color' )
+					.onChange( function () {
+						renderer.setClearColor(scene_controls.background_color);
+						render();
+					});
+
+
+				gui.addColor( scene_controls, 'phone_color' )
+				.onChange( function () {
+					update_color_materials(scene_controls.phone_color);
+					// renderer.setClearColor(scene_controls.phone_color);
+					render();
+				});
+
+
+
+				let camera_lens_attrs =
+				{
+					"iridescence" : 1,
+					"iridescenceIOR" : 0,
+					// "iridescenceThicknessRange" : [0,1],
+					"sheenColor": (0xc88aff),
+					"sheen" : 1,
+					"sheenRoughness" : 1,
+					"dispersion" : 1,
+
+				}
+
+
+				// gui.addColor( scene_controls, 'phone_color' )
+				// 	.name( 'Phone Color' )
+				// 	.onChange( function () {
+				// 		// update_color_materials(scene_controls.phone_color);
+				// 		// render();
+				// 	});
+
+
+				// gui.add( old_params, 'models' ).options( all_meshes ).onChange(dummy);
+				// gui.add( old_params, 'mats' ).options( all_mats ).onChange(dummy);
+				// gui.add( old_params, 'phone_color_mats' ).options( phone_color_mats ).onChange(dummy);
+
+				///////////////////////////////////////////////////////////////////////////////////
+				///////////// Loop through all dictionary entries and create gui //////////////////
+				///////////////////////////////////////////////////////////////////////////////////
+
+				for (const [key, value] of Object.entries( mat_attrs)) {
+
+					// Not necessary but makes things more readable
+					let folder = gui__fldrs;
+					let material = mesh_mat_dict;
+					let params =  mat_attrs;
+
+					// Folder
+					folder[key] = gui.addFolder(key);
+
+					// Color
+					folder[key].addColor(  params[key], 'color' )
+						.onChange(function () 
+						{
+							material[key].color.set( params[key].color );
+							// material[key].needsUpdate = true;
+
+							render();
+						} );
+						
+					// "metalness": 0,
+					folder[key].add( params[key], 'metalness', 0, 1, 0.01 )
+					.onChange( function () {
+						material[key].metalness = params[key].metalness;
+						// material[key].needsUpdate = true;
+
+						render();
+					} );
+
+					// "roughness": 0.5,
+					folder[key].add( params[key], 'roughness', 0, 1, 0.01 )
+					.onChange( function () {
+						material[key].roughness = params[key].roughness;
+						// material[key].needsUpdate = true;
+
+						render();
+					} );
+
+					// "ior": 1.5,
+					folder[key].add( params[key], 'ior', 0, 5, 0.01 )
+					.onChange( function () {
+						material[key].ior = params[key].ior;
+						// material[key].needsUpdate = true;
+
+						render();
+					} );
+
+					// "thickness": 0.01,
+					folder[key].add( params[key], 'thickness', 0, 5, 0.01 )
+					.onChange( function () {
+						material[key].thickness = params[key].thickness;
+						// material[key].needsUpdate = true;
+
+						render();
+					} );
+
+
+
+
+					if (key.includes("camera_lens")){
+
+
+
+					// 	"iridescence" : 1,
+					// "iridescenceIOR" : 0,
+					// // "iridescenceThicknessRange" : [0,1],
+					// "sheenColor": (0xc88aff),
+					// "sheen" : 1,
+					// "sheenRoughness" : 1,
+
+						folder[key].add( camera_lens_attrs, 'dispersion', -5, 5, 0.01 )
+						.onChange( function () {
+							material[key].dispersion = camera_lens_attrs.dispersion;
+							// material[key].needsUpdate = true;
+							render();
+						} );
+
+						folder[key].add( camera_lens_attrs, 'iridescence', -5, 5, 0.01 )
+						.onChange( function () {
+							material[key].iridescence = camera_lens_attrs.iridescence;
+							// material[key].needsUpdate = true;
+							render();
+						} );
+
+						folder[key].add( camera_lens_attrs, 'iridescenceIOR', -5, 5, 0.01 )
+						.onChange( function () {
+							material[key].iridescenceIOR = camera_lens_attrs.iridescenceIOR;
+							// material[key].needsUpdate = true;
+							render();
+						} );
+
+						folder[key].add( camera_lens_attrs, 'sheen', 0, 5, 0.01 )
+						.onChange( function () {
+							material[key].sheen = camera_lens_attrs.sheen;
+							// material[key].needsUpdate = true;
+							render();
+						} );
+
+
+						
+						folder[key].addColor( camera_lens_attrs, 'sheenColor' )
+						.onChange( function () {
+							material[key].sheenColor.set(camera_lens_attrs.sheenColor);
+							// material[key].needsUpdate = true;
+							render();
+						} );
+
+						folder[key].add( camera_lens_attrs, 'sheenRoughness', 0, 1, 0.01 )
+						.onChange( function () {
+							material[key].sheenRoughness = camera_lens_attrs.sheenRoughness;
+							// material[key].needsUpdate = true;
+
+							render();
+						} );
+					}
+
+					// "transmission": 0
+					folder[key].add( params[key], 'transmission', 0, 1, 0.01 )
+					.onChange( function () {
+						material[key].transmission = params[key].transmission;
+						// material[key].needsUpdate = true;
+
+						render();
+					} );
+
+					folder[key].close();
+
+					// Open a folder you would like the user to focus on by default
+					if (key.includes("dir_tex_metal")){
+						// folder[key].open();
+						inspect_methods(folder[key])
+						console.log("CLOSED " + folder[key]._closed)
+
+						// folder[key].onChange( function () {console.log("I AM CHANGING");
+						// } );
+					}
+
+
+
+					
+				}
+
+
+				// gui.open();
+
+				gui_master = gui;
+				// gui_master.updateDisplay();
+
+
+			}
+		</script>
+
+	</body>
 </html>
