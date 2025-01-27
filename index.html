@@ -35,8 +35,6 @@
 			<!-- <button class="button button5"></button> -->
 
 
-		</img>
-
 	 
 
 		<script type="importmap">
@@ -367,102 +365,96 @@
 
 			}
 
-			function init_loader(){
+			function init_loader() {
 				const hdrEquirect = new RGBELoader()
-					.setPath( 'textures/equirectangular/' )
-					// .load( 'field.hdr', function () {
-					.load( 'indoor_grey.hdr', function () {
-
+					.setPath('textures/equirectangular/') // Path relative to root
+					.load('indoor_grey.hdr', function () {
+						console.log('HDR loaded successfully');
+			
+						// Apply environment mapping
 						hdrEquirect.mapping = THREE.EquirectangularReflectionMapping;
-
+			
+						// Load the GLTF model
 						new GLTFLoader()
-							.setPath( 'models/gltf/' )
-							.load( 'iphone.glb', function ( gltf ) {
-
-								gltf.scene.traverse( function ( child ) {
+							.setPath('models/gltf/') // Path relative to root
+							.load('iphone.glb', function (gltf) {
+								console.log('GLTF loaded successfully');
+			
+								// Traverse the GLTF scene
+								gltf.scene.traverse(function (child) {
 									const color = new THREE.Color();
-
 									all_meshes.push(child.name);
-									if ( child.isMesh){
+			
+									// Process meshes
+									if (child.isMesh) {
 										all_meshes.push(child.name);
-										// Thinking about adding these back in, would like to try again, but this was causing some issues...
-										
+			
+										// Enable shadows
 										child.castShadow = true;
 										child.receiveShadow = true;
-										
-										all_mats.push(child.material.type)
-
+			
+										// Track materials
+										all_mats.push(child.material.type);
+			
+										// Handle MeshPhysicalMaterial-specific logic
 										if (child.material.isMeshPhysicalMaterial) {
-											// I am setting transmission to .01 in blender before my gltf export to force it to export pbr
-											// Set it back to 0 here. I can turn it on per material where it makes sense 
-											child.material.transmission = 0;
+											child.material.transmission = 0; // Reset transmission
 											child.material.opacity = 1;
 											child.material.roughness = 1;
-
 											child.material.needsUpdate = true;
-
-											for (const [key, value] of Object.entries( mat_attrs)) {
-												if (child.name.includes(key)){
-													const tmp_mat = child.material; 
-													mesh_mat_dict[key] =  tmp_mat;
+			
+											// Apply material attributes based on name matches
+											for (const [key, value] of Object.entries(mat_attrs)) {
+												if (child.name.includes(key)) {
+													const tmp_mat = child.material;
+													mesh_mat_dict[key] = tmp_mat;
+			
+													// Set material properties
 													tmp_mat.color.setHex(mat_attrs[key].color);
 													tmp_mat.roughness = mat_attrs[key].roughness;
 													tmp_mat.metalness = mat_attrs[key].metalness;
 													tmp_mat.ior = mat_attrs[key].ior;
 													tmp_mat.transmission = mat_attrs[key].transmission;
 													tmp_mat.thickness = mat_attrs[key].thickness;
-
-
-
-													if (child.name.includes("camera_lens")){
+			
+													// Special logic for camera lens materials
+													if (child.name.includes('camera_lens')) {
 														tmp_mat.dispersion = 1;
 														tmp_mat.iridescence = 1;
 														tmp_mat.iridescenceIOR = 0;
-														tmp_mat.iridescenceThicknessRange = [0,1];
-														tmp_mat.iridescenceThicknessRange = [0,1];
+														tmp_mat.iridescenceThicknessRange = [0, 1];
 														tmp_mat.sheenColor.set(0xc88aff);
 														tmp_mat.sheen = 1;
 														tmp_mat.sheenRoughness = 1;
-														// bebecb
-														// "dispersion": 0,
-														// "iridescence": 0,
-														// "iridescenceIOR": 1.3,
-														// "iridescenceThicknessRange": [
-														// 	100,
-														// 	400
-														// ],
-													};
-													// tmp_mat.anisotropy = mat_attrs[key].anisotropy;
-													// tmp_mat.sheen = mat_attrs[key].sheen;
-													// tmp_mat.sheenColor = mat_attrs[key].sheenColor;
-													// tmp_mat.sheenRoughness = mat_attrs[key].sheenRoughness;
-													// Might use these again in the future, but for now I don't think I need them
-													// tmp_mat.opacity = mat_attrs[key].opacity;
-													// tmp_mat.specularColor = mat_attrs[key].specularColor;
-													// tmp_mat.specularIntensity = mat_attrs[key].specularIntensity;
-													// tmp_mat.attenuationColor.set( mat_attrs[key].attenuationColor);
-													// tmp_mat.attenuationDistance = mat_attrs[key].attenuationDistance;
+													}
 												}
 											}
 										}
-									} 
+									}
 								});
-	
+			
+								// Finalize initialization
 								init();
 								all_models = gltf.scene;
-								scene.add( gltf.scene );
-
+								scene.add(gltf.scene);
+			
+								// Set scene environment and background
 								scene.environment = hdrEquirect;
-								// scene.background = hdrEquirect;
 								scene.environmentIntensity = scene_controls.light_intensity;
 								scene.backgroundBlurriness = 1;
-								renderer.setClearColor(scene_controls.background_color);
-							} );
-						} );
-					}
 			
-
-
+								// Set renderer background color
+								renderer.setClearColor(scene_controls.background_color);
+			
+								console.log('Scene initialized successfully');
+							}, undefined, function (error) {
+								console.error('Error loading GLTF model:', error);
+							});
+					}, undefined, function (error) {
+						console.error('Error loading HDR texture:', error);
+					});
+			}
+			
 			// helper funcs
 			function init_scene() {
 				// Camera
